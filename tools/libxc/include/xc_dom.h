@@ -167,6 +167,11 @@ struct xc_dom_image {
     struct xc_dom_loader *kernel_loader;
     void *private_loader;
 
+    /* vNUMA information */
+    unsigned int *vnode_to_pnode; /* vnode to pnode mapping array */
+    uint64_t *vnode_size;         /* vnode size array */
+    unsigned int nr_vnodes;       /* number of elements of above arrays */
+
     /* kernel loader */
     struct xc_dom_arch *arch_hooks;
     /* allocate up to virt_alloc_end */
