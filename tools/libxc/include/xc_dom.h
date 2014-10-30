@@ -50,6 +50,8 @@ struct xc_dom_phys {
     xen_pfn_t count;
 };
 
+struct xc_vnuma_info;
+
 struct xc_dom_image {
     /* files */
     void *kernel_blob;
@@ -166,6 +168,10 @@ struct xc_dom_image {
     /* kernel loader, arch hooks */
     struct xc_dom_loader *kernel_loader;
     void *private_loader;
+
+    /* vNUMA information */
+    struct xc_vnuma_info *vnuma_info;
+    unsigned int nr_vnuma_info;
 
     /* kernel loader */
     struct xc_dom_arch *arch_hooks;

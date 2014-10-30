@@ -217,6 +217,12 @@ struct xc_hvm_firmware_module {
     uint64_t  guest_addr_out;
 };
 
+struct xc_vnuma_info {
+    unsigned int vnode;
+    unsigned int pnode;
+    uint64_t     pages;
+};
+
 struct xc_hvm_build_args {
     uint64_t mem_size;           /* Memory size in bytes. */
     uint64_t mem_target;         /* Memory target in bytes. */

@@ -35,6 +35,8 @@
 
 #include <xen/sys/privcmd.h>
 
+#define XC_VNUMA_NO_NODE (~0U)
+
 #if defined(HAVE_VALGRIND_MEMCHECK_H) && !defined(NDEBUG) && !defined(__MINIOS__)
 /* Compile in Valgrind client requests? */
 #include <valgrind/memcheck.h>

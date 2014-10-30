@@ -759,7 +759,8 @@ static int x86_shadow(xc_interface *xch, domid_t domid)
 int arch_setup_meminit(struct xc_dom_image *dom)
 {
     int rc;
-    xen_pfn_t pfn, allocsz, i, j, mfn;
+    xen_pfn_t pfn, allocsz, mfn, total, pfn_base;
+    int i, j;
 
     rc = x86_compat(dom->xch, dom->guest_domid, dom->guest_type);
     if ( rc )
@@ -811,18 +812,80 @@ int arch_setup_meminit(struct xc_dom_image *dom)
         /* setup initial p2m */
         for ( pfn = 0; pfn < dom->total_pages; pfn++ )
             dom->p2m_host[pfn] = pfn;
-        
-        /* allocate guest memory */
-        for ( i = rc = allocsz = 0;
-              (i < dom->total_pages) && !rc;
-              i += allocsz )
+
+        /* Setup dummy vNUMA information if it's not provided. Note
+         * that this is a valid state if libxl doesn't provide any
+         * vNUMA information.
+         *
+         * The dummy values make libxc allocate all pages from
+         * arbitrary physical. This is the expected behaviour if no
+         * vNUMA configuration is provided to libxc.
+         *
+         * Note that the following hunk is just for the convenience of
+         * allocation code. No defaulting is happening in libxc.
+         */
+        if ( dom->nr_vnuma_info == 0 )
         {
-            allocsz = dom->total_pages - i;
-            if ( allocsz > 1024*1024 )
-                allocsz = 1024*1024;
-            rc = xc_domain_populate_physmap_exact(
-                dom->xch, dom->guest_domid, allocsz,
-                0, 0, &dom->p2m_host[i]);
+            dom->nr_vnuma_info = 1;
+            dom->vnuma_info = xc_dom_malloc(dom, sizeof(*dom->vnuma_info));
+            dom->vnuma_info[0].vnode = 0;
+            dom->vnuma_info[0].pnode = XC_VNUMA_NO_NODE;
+            dom->vnuma_info[0].pages = dom->total_pages;
+        }
+
+        total = 0;
+        for ( i = 0; i < dom->nr_vnuma_info; i++ )
+            total += dom->vnuma_info[i].pages;
+        if ( total != dom->total_pages )
+        {
+            xc_dom_panic(dom->xch, XC_INTERNAL_ERROR,
+                         "%s: vNUMA page count mismatch (0x%"PRIpfn" != 0x%"PRIpfn")\n",
+                         __func__, total, dom->total_pages);
+            return -EINVAL;
+        }
+
+        /* allocate guest memory */
+        pfn_base = 0;
+        for ( i = 0; i < dom->nr_vnuma_info; i++ )
+        {
+            unsigned int memflags;
+            uint64_t pages;
+
+            memflags = 0;
+            if ( dom->vnuma_info[i].pnode != XC_VNUMA_NO_NODE )
+            {
+                memflags |= XENMEMF_exact_node(dom->vnuma_info[i].pnode);
+                memflags |= XENMEMF_exact_node_request;
+            }
+
+            pages = dom->vnuma_info[i].pages;
+
+            for ( j = 0; j < pages; j += allocsz )
+            {
+                allocsz = pages - j;
+                if ( allocsz > 1024*1024 )
+                    allocsz = 1024*1024;
+
+                rc = xc_domain_populate_physmap_exact(dom->xch,
+                         dom->guest_domid, allocsz, 0, memflags,
+                         &dom->p2m_host[pfn_base+j]);
+
+                if ( rc )
+                {
+                    if ( dom->vnuma_info[i].pnode != XC_VNUMA_NO_NODE )
+                        xc_dom_panic(dom->xch, XC_INTERNAL_ERROR,
+                                     "%s: failed to allocate 0x%"PRIx64" pages (v=%d, p=%d)\n",
+                                     __func__, pages, i,
+                                     dom->vnuma_info[i].pnode);
+                    else
+                        xc_dom_panic(dom->xch, XC_INTERNAL_ERROR,
+                                     "%s: failed to allocate 0x%"PRIx64" pages\n",
+                                     __func__, pages);
+                    return rc;
+                }
+            }
+
+            pfn_base += pages;
         }
 
         /* Ensure no unclaimed pages are left unused.
