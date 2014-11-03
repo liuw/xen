@@ -266,6 +266,45 @@ it will crash.
 
 =back
 
+=head3 Virtual NUMA Memory Allocation
+
+=over 4
+
+=item B<vnuma_memory=[ NUMBER, NUMBER, ... ]>
+
+Specify the size of memory covered by each virtual NUMA node. The number of
+elements in the list also implicitly defines the number of virtual NUMA nodes.
+
+The sum of all elements in this list should be equal to memory size specified
+by B<maxmem=> in guest configuration file, or B<memory=> if B<maxmem=> is not
+specified.
+
+=item B<vnuma_vcpu_map=[ NUMBER, NUMBER, ... ]>
+
+Specifiy which virutal NUMA node a specific vcpu belongs to. The number of
+elements in this list should be equal to B<maxvcpus=> in guest configuration
+file, or B<vcpus=> if B<maxvcpus=> is not specified.
+
+=item B<vnuma_pnode_map=[ NUMBER, NUMBER, ... ]>
+
+Specifiy which physical NUMA node a specific virtual NUMA node maps to. The
+number of elements in this list should be equal to the number of virtual
+NUMA nodes defined in B<vnuma_memory=>.
+
+=item B<vnuma_vdistance=[ [NUMBER, ..., NUMBER], [NUMBER, ..., NUMBER], ... ]>
+
+Two dimensional list to specify distances among nodes.
+
+The number of elements in the first dimension list equals the number of virtual
+nodes. Each element in position B<i> is a list that specifies the distances
+from node B<i> to other nodes.
+
+For example, for a guest with 2 virtual nodes, user can specify:
+
+  vnuma_vdistance = [ [10, 20], [20, 10] ]
+
+=back
+
 =head3 Event Actions
 
 =over 4
