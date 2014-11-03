@@ -904,6 +904,155 @@ static void replace_string(char **str, const char *val)
     *str = xstrdup(val);
 }
 
+static void parse_vnuma_config(const XLU_Config *config,
+                               libxl_domain_build_info *b_info)
+{
+    int i;
+    XLU_ConfigList *vnuma_memory, *vnuma_vcpu_map, *vnuma_pnode_map,
+        *vnuma_vdistances;
+    int num_vnuma_memory, num_vnuma_vcpu_map, num_vnuma_pnode_map,
+        num_vnuma_vdistances;
+    const char *buf;
+    libxl_physinfo physinfo;
+    uint32_t nr_nodes;
+    unsigned long local, remote; /* vdistance */
+    unsigned long val;
+    char *ep;
+
+    libxl_physinfo_init(&physinfo);
+    if (libxl_get_physinfo(ctx, &physinfo) != 0) {
+        libxl_physinfo_dispose(&physinfo);
+        fprintf(stderr, "libxl_physinfo failed.\n");
+        exit(1);
+    }
+    nr_nodes = physinfo.nr_nodes;
+    libxl_physinfo_dispose(&physinfo);
+
+    if (xlu_cfg_get_list(config, "vnuma_memory", &vnuma_memory,
+                         &num_vnuma_memory, 1))
+        return;              /* No vnuma config */
+
+    b_info->num_vnuma_nodes = num_vnuma_memory;
+    b_info->vnuma_nodes = xmalloc(num_vnuma_memory * sizeof(libxl_vnode_info));
+
+    for (i = 0; i < b_info->num_vnuma_nodes; i++) {
+        libxl_vnode_info *p = &b_info->vnuma_nodes[i];
+
+        libxl_vnode_info_init(p);
+        libxl_cpu_bitmap_alloc(ctx, &p->vcpus, b_info->max_vcpus);
+        libxl_bitmap_set_none(&p->vcpus);
+        p->distances = xmalloc(b_info->num_vnuma_nodes * sizeof(uint32_t));
+        p->num_distances = b_info->num_vnuma_nodes;
+    }
+
+    for (i = 0; i < b_info->num_vnuma_nodes; i++) {
+        buf = xlu_cfg_get_listitem(vnuma_memory, i);
+        val = strtoul(buf, &ep, 10);
+        if (ep == buf) {
+            fprintf(stderr, "xl: Invalid argument parsing vnuma memory: %s\n", buf);
+            exit(1);
+        }
+        b_info->vnuma_nodes[i].mem = val;
+    }
+
+    if (xlu_cfg_get_list(config, "vnuma_vcpu_map", &vnuma_vcpu_map,
+                         &num_vnuma_vcpu_map, 1)) {
+        fprintf(stderr, "No vcpu to vnode map specified\n");
+        exit(1);
+    }
+
+    i = 0;
+    while (i < b_info->max_vcpus &&
+           (buf = xlu_cfg_get_listitem(vnuma_vcpu_map, i)) != NULL) {
+        val = strtoul(buf, &ep, 10);
+        if (ep == buf) {
+            fprintf(stderr, "xl: Invalid argument parsing vcpu map: %s\n", buf);
+            exit(1);
+        }
+        if (val >= num_vnuma_memory) {
+            fprintf(stderr, "xl: Invalid vnode number specified: %lu\n", val);
+            exit(1);
+        }
+        libxl_bitmap_set(&b_info->vnuma_nodes[val].vcpus, i);
+        i++;
+    }
+
+    if (i != b_info->max_vcpus) {
+        fprintf(stderr, "xl: Not enough elements in vnuma_vcpu_map, provided %d, required %d\n",
+                i + 1, b_info->max_vcpus);
+        exit(1);
+    }
+
+    if (xlu_cfg_get_list(config, "vnuma_pnode_map", &vnuma_pnode_map,
+                         &num_vnuma_pnode_map, 1)) {
+        fprintf(stderr, "No vnode to pnode map specified\n");
+        exit(1);
+    }
+
+    i = 0;
+    while (i < num_vnuma_pnode_map &&
+           (buf = xlu_cfg_get_listitem(vnuma_pnode_map, i)) != NULL) {
+        val = strtoul(buf, &ep, 10);
+        if (ep == buf) {
+            fprintf(stderr, "xl: Invalid argument parsing vnode to pnode map: %s\n", buf);
+            exit(1);
+        }
+        if (val >= nr_nodes) {
+            fprintf(stderr, "xl: Invalid pnode number specified: %lu\n", val);
+            exit(1);
+        }
+
+        b_info->vnuma_nodes[i].pnode = val;
+
+        i++;
+    }
+
+    if (i != b_info->num_vnuma_nodes) {
+        fprintf(stderr, "xl: Not enough elements in vnuma_vnode_map, provided %d, required %d\n",
+                i + 1, b_info->num_vnuma_nodes);
+        exit(1);
+    }
+
+    /* Set default values for distances, then try to parse config */
+    local = 10;
+    remote = 20;
+    if (!xlu_cfg_get_list(config, "vnuma_vdistances", &vnuma_vdistances,
+                          &num_vnuma_vdistances, 1)) {
+        if (num_vnuma_vdistances != 2) {
+            fprintf(stderr, "xl: vnuma_vdistances array can only contain 2 elements\n");
+            exit(1);
+        }
+
+        buf = xlu_cfg_get_listitem(vnuma_vdistances, 0);
+        local = strtoul(buf, &ep, 10);
+        if (ep == buf) {
+            fprintf(stderr, "xl: Invalid argument parsing vdistances map: %s\n", buf);
+            exit(1);
+        }
+
+        buf = xlu_cfg_get_listitem(vnuma_vdistances, 1);
+        remote = strtoul(buf, &ep, 10);
+        if (ep == buf) {
+            fprintf(stderr, "xl: Invalid argument parsing vdistances map: %s\n", buf);
+            exit(1);
+        }
+
+    }
+
+    for (i = 0; i < b_info->num_vnuma_nodes; i++) {
+        int j;
+        uint32_t *x = b_info->vnuma_nodes[i].distances;
+
+        for (j = 0; j < b_info->vnuma_nodes[i].num_distances; j++) {
+            if (i == j)
+                x[j] = local;
+            else
+                x[j] = remote;
+        }
+    }
+
+}
+
 static void parse_config_data(const char *config_source,
                               const char *config_data,
                               int config_len,
@@ -1092,6 +1241,8 @@ static void parse_config_data(const char *config_source,
             exit (1);
         }
     }
+
+    parse_vnuma_config(config, b_info);
 
     if (!xlu_cfg_get_long(config, "rtc_timeoffset", &l, 0))
         b_info->rtc_timeoffset = l;
