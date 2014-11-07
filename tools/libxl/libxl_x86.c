@@ -339,6 +339,82 @@ int libxl__arch_domain_finalise_hw_description(libxl__gc *gc,
     return 0;
 }
 
+int libxl__arch_vnuma_build_vmemrange(libxl__gc *gc,
+                                      uint32_t domid,
+                                      libxl_domain_build_info *b_info,
+                                      libxl__domain_build_state *state)
+{
+    int nid, nr_vmemrange, rc;
+    uint32_t nr_e820, e820_count;
+    struct e820entry map[E820MAX];
+    xen_vmemrange_t *vmemranges;
+
+    /* Only touch vmemranges if it's PV guest and e820_host is true */
+    if (!(b_info->type == LIBXL_DOMAIN_TYPE_PV &&
+          libxl_defbool_val(b_info->u.pv.e820_host))) {
+        rc = 0;
+        goto out;
+    }
+
+    rc = e820_host_sanitize(gc, b_info, map, &nr_e820);
+    if (rc) goto out;
+
+    /* Ditch old vmemranges and start with host E820 map. Note, memory
+     * was gc allocated.
+     */
+    state->vmemranges = NULL;
+    state->num_vmemranges = 0;
+
+    e820_count = 0;
+    nr_vmemrange = 0;
+    vmemranges = NULL;
+    for (nid = 0; nid < b_info->num_vnuma_nodes; nid++) {
+        libxl_vnode_info *p = &b_info->vnuma_nodes[nid];
+        uint64_t remaining_bytes = (p->memkb << 10), bytes;
+
+        while (remaining_bytes > 0) {
+            if (e820_count >= nr_e820) {
+                rc = ERROR_NOMEM;
+                goto out;
+            }
+
+            /* Skip non RAM region */
+            if (map[e820_count].type != E820_RAM) {
+                e820_count++;
+                continue;
+            }
+
+            GCREALLOC_ARRAY(vmemranges, nr_vmemrange+1);
+
+            bytes = map[e820_count].size >= remaining_bytes ?
+                remaining_bytes : map[e820_count].size;
+
+            vmemranges[nr_vmemrange].start = map[e820_count].addr;
+            vmemranges[nr_vmemrange].end = map[e820_count].addr + bytes;
+
+            if (map[e820_count].size >= remaining_bytes) {
+                map[e820_count].addr += bytes;
+                map[e820_count].size -= bytes;
+            } else {
+                e820_count++;
+            }
+
+            remaining_bytes -= bytes;
+
+            vmemranges[nr_vmemrange].flags = 0;
+            vmemranges[nr_vmemrange].nid = nid;
+            nr_vmemrange++;
+        }
+    }
+
+    state->vmemranges = vmemranges;
+    state->num_vmemranges = nr_vmemrange;
+
+    rc = 0;
+out:
+    return rc;
+}
+
 /*
  * Local variables:
  * mode: C
