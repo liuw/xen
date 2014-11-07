@@ -3397,6 +3397,11 @@ int libxl__vnuma_config_check(libxl__gc *gc,
                               const libxl_domain_build_info *b_info,
                               const libxl__domain_build_state *state);
 
+int libxl__vnuma_build_vmemrange_pv(libxl__gc *gc,
+                                    uint32_t domid,
+                                    libxl_domain_build_info *b_info,
+                                    libxl__domain_build_state *state);
+
 _hidden int libxl__ms_vm_genid_set(libxl__gc *gc, uint32_t domid,
                                    const libxl_ms_vm_genid *id);
 
