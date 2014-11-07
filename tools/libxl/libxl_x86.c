@@ -338,6 +338,80 @@ int libxl__arch_domain_finalise_hw_description(libxl__gc *gc,
     return 0;
 }
 
+int libxl__arch_vnuma_build_vmemrange(libxl__gc *gc,
+                                      uint32_t domid,
+                                      libxl_domain_build_info *b_info,
+                                      libxl__domain_build_state *state)
+{
+    int i, x, n, rc;
+    uint32_t nr_e820;
+    struct e820entry map[E820MAX];
+    xen_vmemrange_t *v;
+
+    /* Only touch vmemranges if it's PV guest and e820_host is true */
+    if (!(b_info->type == LIBXL_DOMAIN_TYPE_PV &&
+          libxl_defbool_val(b_info->u.pv.e820_host))) {
+        rc = 0;
+        goto out;
+    }
+
+    rc = e820_host_sanitize(gc, b_info, map, &nr_e820);
+    if (rc) goto out;
+
+    /* Ditch old vmemranges and start with host E820 map. Note, memory
+     * was gc allocated.
+     */
+    state->vmemranges = NULL;
+    state->num_vmemranges = 0;
+
+    n = 0; /* E820 counter */
+    x = 0;
+    v = NULL;
+    for (i = 0; i < b_info->num_vnuma_nodes; i++) {
+        libxl_vnode_info *p = &b_info->vnuma_nodes[i];
+        uint64_t remaining = (p->mem << 20);
+
+        while (remaining > 0) {
+            if (n >= nr_e820) {
+                rc = ERROR_FAIL;
+                goto out;
+            }
+
+            /* Skip non RAM region */
+            if (map[n].type != E820_RAM) {
+                n++;
+                continue;
+            }
+
+            v = libxl__realloc(gc, v, sizeof(xen_vmemrange_t) * (x+1));
+
+            if (map[n].size >= remaining) {
+                v[x].start = map[n].addr;
+                v[x].end = map[n].addr + remaining;
+                map[n].addr += remaining;
+                map[n].size -= remaining;
+                remaining = 0;
+            } else {
+                v[x].start = map[n].addr;
+                v[x].end = map[n].addr + map[n].size;
+                remaining -= map[n].size;
+                n++;
+            }
+
+            v[x].flags = 0;
+            v[x].nid = i;
+            x++;
+        }
+    }
+
+    state->vmemranges = v;
+    state->num_vmemranges = x;
+
+    rc = 0;
+out:
+    return rc;
+}
+
 /*
  * Local variables:
  * mode: C
