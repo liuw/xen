@@ -363,10 +363,12 @@ EXPORT_SYMBOL(node_data);
 static void dump_numa(unsigned char key)
 {
     s_time_t now = NOW();
-    int i;
+    int i, j, err, n;
     struct domain *d;
     struct page_info *page;
     unsigned int page_num_node[MAX_NUMNODES];
+    uint64_t mem;
+    struct vnuma_info *vnuma;
 
     printk("'%c' pressed -> dumping numa info (now-0x%X:%08X)\n", key,
            (u32)(now>>32), (u32)now);
@@ -408,6 +410,48 @@ static void dump_numa(unsigned char key)
 
         for_each_online_node ( i )
             printk("    Node %u: %u\n", i, page_num_node[i]);
+
+        if ( !d->vnuma )
+                continue;
+
+        vnuma = d->vnuma;
+        printk("     %u vnodes, %u vcpus\n", vnuma->nr_vnodes, d->max_vcpus);
+        for ( i = 0; i < vnuma->nr_vnodes; i++ )
+        {
+            err = snprintf(keyhandler_scratch, 12, "%u",
+                    vnuma->vnode_to_pnode[i]);
+            if ( err < 0 || vnuma->vnode_to_pnode[i] == NUMA_NO_NODE )
+                snprintf(keyhandler_scratch, 3, "???");
+
+            printk("       vnode %3u - pnode %s\n", i, keyhandler_scratch);
+            for ( j = 0; j < vnuma->nr_vmemranges; j++ )
+            {
+                if ( vnuma->vmemrange[j].nid == i )
+                {
+                    mem = vnuma->vmemrange[j].end - vnuma->vmemrange[j].start;
+                    printk("        %"PRIu64" MB: ", mem >> 20);
+                    printk(" 0x%"PRIx64" - 0x%"PRIx64"\n",
+                           vnuma->vmemrange[j].start,
+                           vnuma->vmemrange[j].end);
+                }
+            }
+
+            printk("        vcpus: ");
+            for ( j = 0, n = 0; j < d->max_vcpus; j++ )
+            {
+                if ( vnuma->vcpu_to_vnode[j] == i )
+                {
+                    if ( (n + 1) % 8 == 0 )
+                        printk("%d\n", j);
+                    else if ( !(n % 8) && n != 0 )
+                        printk("                %d ", j);
+                    else
+                        printk("%d ", j);
+                    n++;
+                }
+            }
+            printk("\n");
+        }
     }
 
     rcu_read_unlock(&domlist_read_lock);
