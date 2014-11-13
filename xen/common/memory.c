@@ -692,6 +692,50 @@ out:
     return rc;
 }
 
+static int translate_vnode_to_pnode(struct domain *d,
+                                    struct xen_memory_reservation *r,
+                                    struct memop_args *a)
+{
+    int rc = 0;
+    unsigned int vnode, pnode;
+
+    /*
+     * Note: we don't strictly require non-supported bits set to zero,
+     * so we may have exact_vnode bit set for old guests that don't
+     * support vNUMA.
+     *
+     * To distinguish spurious vnode request v.s. real one, check if
+     * d->vnuma exists.
+     */
+    if ( r->mem_flags & XENMEMF_vnode )
+    {
+        read_lock(&d->vnuma_rwlock);
+        if ( d->vnuma )
+        {
+            vnode = XENMEMF_get_node(r->mem_flags);
+
+            if ( vnode < d->vnuma->nr_vnodes )
+            {
+                pnode = d->vnuma->vnode_to_pnode[vnode];
+
+                a->memflags &=
+                    ~MEMF_node(XENMEMF_get_node(r->mem_flags));
+
+                if ( pnode != NUMA_NO_NODE )
+                {
+                    a->memflags |= MEMF_exact_node;
+                    a->memflags |= MEMF_node(pnode);
+                }
+            }
+            else
+                rc = -EINVAL;
+        }
+        read_unlock(&d->vnuma_rwlock);
+    }
+
+    return rc;
+}
+
 long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
 {
     struct domain *d;
@@ -734,10 +778,6 @@ long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
             args.memflags = MEMF_bits(address_bits);
         }
 
-        args.memflags |= MEMF_node(XENMEMF_get_node(reservation.mem_flags));
-        if ( reservation.mem_flags & XENMEMF_exact_node_request )
-            args.memflags |= MEMF_exact_node;
-
         if ( op == XENMEM_populate_physmap
              && (reservation.mem_flags & XENMEMF_populate_on_demand) )
             args.memflags |= MEMF_populate_on_demand;
@@ -746,6 +786,16 @@ long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
         if ( d == NULL )
             return start_extent;
         args.domain = d;
+
+        args.memflags |= MEMF_node(XENMEMF_get_node(reservation.mem_flags));
+        if ( reservation.mem_flags & XENMEMF_exact_node_request )
+            args.memflags |= MEMF_exact_node;
+
+        if ( translate_vnode_to_pnode(d, &reservation, &args) )
+        {
+            rcu_unlock_domain(d);
+            return start_extent;
+        }
 
         if ( xsm_memory_adjust_reservation(XSM_TARGET, current->domain, d) )
         {
