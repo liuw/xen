@@ -203,6 +203,66 @@ static struct acpi_20_waet *construct_waet(void)
     return waet;
 }
 
+static struct acpi_20_srat *construct_srat(void)
+{
+    struct acpi_20_srat *srat;
+    struct acpi_20_srat_processor *processor;
+    struct acpi_20_srat_memory *memory;
+    unsigned int size;
+    void *p;
+    int i;
+    uint64_t mem;
+
+    size = sizeof(*srat) + sizeof(*processor) * hvm_info->nr_vcpus +
+        sizeof(*memory) * hvm_info->nr_vmemranges;
+
+    p = mem_alloc(size, 16);
+    if (!p) return NULL;
+
+    srat = p;
+    memset(srat, 0, sizeof(*srat));
+    srat->header.signature    = ACPI_2_0_SRAT_SIGNATURE;
+    srat->header.revision     = ACPI_2_0_SRAT_REVISION;
+    fixed_strcpy(srat->header.oem_id, ACPI_OEM_ID);
+    fixed_strcpy(srat->header.oem_table_id, ACPI_OEM_TABLE_ID);
+    srat->header.oem_revision = ACPI_OEM_REVISION;
+    srat->header.creator_id   = ACPI_CREATOR_ID;
+    srat->header.creator_revision = ACPI_CREATOR_REVISION;
+    srat->table_revision      = ACPI_SRAT_TABLE_REVISION;
+
+    processor = (struct acpi_20_srat_processor *)(srat + 1);
+    for ( i = 0; i < hvm_info->nr_vcpus; i++ )
+    {
+        memset(processor, 0, sizeof(*processor));
+        processor->type     = ACPI_PROCESSOR_AFFINITY;
+        processor->length   = sizeof(*processor);
+        processor->domain   = hvm_info->vcpu_to_vnode[i];
+        processor->apic_id  = LAPIC_ID(i);
+        processor->flags    = ACPI_LOCAL_APIC_AFFIN_ENABLED;
+        processor->sapic_id = 0;
+        processor++;
+    }
+
+    memory = (struct acpi_20_srat_memory *)processor;
+    for ( i = 0; i < hvm_info->nr_vmemranges; i++ )
+    {
+        mem = hvm_info->vmemranges[i].end - hvm_info->vmemranges[i].start;
+        memset(memory, 0, sizeof(*memory));
+        memory->type          = ACPI_MEMORY_AFFINITY;
+        memory->length        = sizeof(*memory);
+        memory->domain        = hvm_info->vmemranges[i].nid;
+        memory->flags         = ACPI_MEM_AFFIN_ENABLED;
+        memory->base_address  = hvm_info->vmemranges[i].start;
+        memory->mem_length    = mem;
+        memory++;
+    }
+
+    srat->header.length = size;
+    set_checksum(srat, offsetof(struct acpi_header, checksum), size);
+
+    return srat;
+}
+
 static int construct_passthrough_tables(unsigned long *table_ptrs,
                                         int nr_tables)
 {
@@ -257,6 +317,7 @@ static int construct_secondary_tables(unsigned long *table_ptrs,
     struct acpi_20_hpet *hpet;
     struct acpi_20_waet *waet;
     struct acpi_20_tcpa *tcpa;
+    struct acpi_20_srat *srat;
     unsigned char *ssdt;
     static const uint16_t tis_signature[] = {0x0001, 0x0001, 0x0001};
     uint16_t *tis_hdr;
@@ -268,6 +329,13 @@ static int construct_secondary_tables(unsigned long *table_ptrs,
         madt = construct_madt(info);
         if (!madt) return -1;
         table_ptrs[nr_tables++] = (unsigned long)madt;
+    }
+
+    if ( hvm_info->nr_nodes > 0 )
+    {
+        srat = construct_srat();
+        if (!srat) return -1;
+        table_ptrs[nr_tables++] = (unsigned long)srat;
     }
 
     /* HPET. */
