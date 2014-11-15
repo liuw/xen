@@ -32,6 +32,17 @@
 /* Maximum we can support with current vLAPIC ID mapping. */
 #define HVM_MAX_VCPUS        128
 
+#define HVM_MAX_NODES         16
+#define HVM_MAX_LOCALITIES    (HVM_MAX_NODES * HVM_MAX_NODES)
+
+#define HVM_MAX_VMEMRANGES    64
+struct hvm_info_vmemrange {
+    uint64_t start;
+    uint64_t end;
+    uint32_t flags;
+    uint32_t nid;
+};
+
 struct hvm_info_table {
     char        signature[8]; /* "HVM INFO" */
     uint32_t    length;
@@ -67,6 +78,14 @@ struct hvm_info_table {
 
     /* Bitmap of which CPUs are online at boot time. */
     uint8_t     vcpu_online[(HVM_MAX_VCPUS + 7)/8];
+
+    /* Virtual NUMA information */
+    uint32_t    nr_nodes;
+    uint8_t     vcpu_to_vnode[HVM_MAX_VCPUS];
+    uint32_t    nr_vmemranges;
+    struct hvm_info_vmemrange vmemranges[HVM_MAX_VMEMRANGES];
+    uint64_t    nr_localities;
+    uint8_t     localities[HVM_MAX_LOCALITIES];
 };
 
 #endif /* __XEN_PUBLIC_HVM_HVM_INFO_TABLE_H__ */
