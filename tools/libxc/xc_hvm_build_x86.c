@@ -89,7 +89,8 @@ static int modules_init(struct xc_hvm_build_args *args,
 }
 
 static void build_hvm_info(void *hvm_info_page, uint64_t mem_size,
-                           uint64_t mmio_start, uint64_t mmio_size)
+                           uint64_t mmio_start, uint64_t mmio_size,
+                           struct xc_hvm_build_args *args)
 {
     struct hvm_info_table *hvm_info = (struct hvm_info_table *)
         (((unsigned char *)hvm_info_page) + HVM_INFO_OFFSET);
@@ -118,6 +119,10 @@ static void build_hvm_info(void *hvm_info_page, uint64_t mem_size,
     hvm_info->low_mem_pgend = lowmem_end >> PAGE_SHIFT;
     hvm_info->high_mem_pgend = highmem_end >> PAGE_SHIFT;
     hvm_info->reserved_mem_pgstart = ioreq_server_pfn(0);
+
+    args->lowmem_end = lowmem_end;
+    args->highmem_end = highmem_end;
+    args->mmio_start = mmio_start;
 
     /* Finish with the checksum. */
     for ( i = 0, sum = 0; i < hvm_info->length; i++ )
@@ -244,7 +249,7 @@ static int setup_guest(xc_interface *xch,
                        char *image, unsigned long image_size)
 {
     xen_pfn_t *page_array = NULL;
-    unsigned long i, nr_pages = args->mem_size >> PAGE_SHIFT;
+    unsigned long i, j, nr_pages = args->mem_size >> PAGE_SHIFT;
     unsigned long target_pages = args->mem_target >> PAGE_SHIFT;
     uint64_t mmio_start = (1ull << 32) - args->mmio_size;
     uint64_t mmio_size = args->mmio_size;
@@ -258,13 +263,13 @@ static int setup_guest(xc_interface *xch,
     xen_capabilities_info_t caps;
     unsigned long stat_normal_pages = 0, stat_2mb_pages = 0, 
         stat_1gb_pages = 0;
-    int pod_mode = 0;
+    unsigned int memflags = 0;
     int claim_enabled = args->claim_enabled;
     xen_pfn_t special_array[NR_SPECIAL_PAGES];
     xen_pfn_t ioreq_server_array[NR_IOREQ_SERVER_PAGES];
-
-    if ( nr_pages > target_pages )
-        pod_mode = XENMEMF_populate_on_demand;
+    uint64_t dummy_vnode_size;
+    unsigned int dummy_vnode_to_pnode;
+    uint64_t total;
 
     memset(&elf, 0, sizeof(elf));
     if ( elf_init(&elf, image, image_size) != 0 )
@@ -275,6 +280,37 @@ static int setup_guest(xc_interface *xch,
     elf_parse_binary(&elf);
     v_start = 0;
     v_end = args->mem_size;
+
+    if ( nr_pages > target_pages )
+        memflags |= XENMEMF_populate_on_demand;
+
+    if ( args->nr_vnodes == 0 )
+    {
+        /* Build dummy vnode information */
+        args->nr_vnodes = 1;
+        dummy_vnode_to_pnode = XC_VNUMA_NO_NODE;
+        dummy_vnode_size = args->mem_size >> 20;
+        args->vnode_size = &dummy_vnode_size;
+        args->vnode_to_pnode = &dummy_vnode_to_pnode;
+    }
+    else
+    {
+        if ( nr_pages > target_pages )
+        {
+            PERROR("Cannot enable vNUMA and PoD at the same time");
+            goto error_out;
+        }
+    }
+
+    total = 0;
+    for ( i = 0; i < args->nr_vnodes; i++ )
+        total += (args->vnode_size[i] << 20);
+    if ( total != args->mem_size )
+    {
+        PERROR("Memory size requested by vNUMA (0x%"PRIx64") mismatches memory size configured for domain (0x%"PRIx64")",
+               total, args->mem_size);
+        goto error_out;
+    }
 
     if ( xc_version(xch, XENVER_capabilities, &caps) != 0 )
     {
@@ -320,7 +356,7 @@ static int setup_guest(xc_interface *xch,
         }
     }
 
-    if ( pod_mode )
+    if ( memflags & XENMEMF_populate_on_demand )
     {
         /*
          * Subtract VGA_HOLE_SIZE from target_pages for the VGA
@@ -349,103 +385,128 @@ static int setup_guest(xc_interface *xch,
      * ensure that we can be preempted and hence dom0 remains responsive.
      */
     rc = xc_domain_populate_physmap_exact(
-        xch, dom, 0xa0, 0, pod_mode, &page_array[0x00]);
+        xch, dom, 0xa0, 0, memflags, &page_array[0x00]);
     cur_pages = 0xc0;
     stat_normal_pages = 0xc0;
 
-    while ( (rc == 0) && (nr_pages > cur_pages) )
+    for ( i = 0; i < args->nr_vnodes; i++ )
     {
-        /* Clip count to maximum 1GB extent. */
-        unsigned long count = nr_pages - cur_pages;
-        unsigned long max_pages = SUPERPAGE_1GB_NR_PFNS;
+        unsigned int new_memflags = memflags;
+        uint64_t pages, finished;
 
-        if ( count > max_pages )
-            count = max_pages;
-
-        cur_pfn = page_array[cur_pages];
-
-        /* Take care the corner cases of super page tails */
-        if ( ((cur_pfn & (SUPERPAGE_1GB_NR_PFNS-1)) != 0) &&
-             (count > (-cur_pfn & (SUPERPAGE_1GB_NR_PFNS-1))) )
-            count = -cur_pfn & (SUPERPAGE_1GB_NR_PFNS-1);
-        else if ( ((count & (SUPERPAGE_1GB_NR_PFNS-1)) != 0) &&
-                  (count > SUPERPAGE_1GB_NR_PFNS) )
-            count &= ~(SUPERPAGE_1GB_NR_PFNS - 1);
-
-        /* Attemp to allocate 1GB super page. Because in each pass we only
-         * allocate at most 1GB, we don't have to clip super page boundaries.
-         */
-        if ( ((count | cur_pfn) & (SUPERPAGE_1GB_NR_PFNS - 1)) == 0 &&
-             /* Check if there exists MMIO hole in the 1GB memory range */
-             !check_mmio_hole(cur_pfn << PAGE_SHIFT,
-                              SUPERPAGE_1GB_NR_PFNS << PAGE_SHIFT,
-                              mmio_start, mmio_size) )
+        if ( args->vnode_to_pnode[i] != XC_VNUMA_NO_NODE )
         {
-            long done;
-            unsigned long nr_extents = count >> SUPERPAGE_1GB_SHIFT;
-            xen_pfn_t sp_extents[nr_extents];
-
-            for ( i = 0; i < nr_extents; i++ )
-                sp_extents[i] = page_array[cur_pages+(i<<SUPERPAGE_1GB_SHIFT)];
-
-            done = xc_domain_populate_physmap(xch, dom, nr_extents, SUPERPAGE_1GB_SHIFT,
-                                              pod_mode, sp_extents);
-
-            if ( done > 0 )
-            {
-                stat_1gb_pages += done;
-                done <<= SUPERPAGE_1GB_SHIFT;
-                cur_pages += done;
-                count -= done;
-            }
+            new_memflags |= XENMEMF_exact_node(args->vnode_to_pnode[i]);
+            new_memflags |= XENMEMF_exact_node_request;
         }
 
-        if ( count != 0 )
+        pages = (args->vnode_size[i] << 20) >> PAGE_SHIFT;
+        /* Consider vga hole belongs to node 0 */
+        if ( i == 0 )
+            finished = 0xc0;
+        else
+            finished = 0;
+
+        while ( (rc == 0) && (pages > finished) )
         {
-            /* Clip count to maximum 8MB extent. */
-            max_pages = SUPERPAGE_2MB_NR_PFNS * 4;
+            /* Clip count to maximum 1GB extent. */
+            unsigned long count = pages - finished;
+            unsigned long max_pages = SUPERPAGE_1GB_NR_PFNS;
+
             if ( count > max_pages )
                 count = max_pages;
-            
-            /* Clip partial superpage extents to superpage boundaries. */
-            if ( ((cur_pfn & (SUPERPAGE_2MB_NR_PFNS-1)) != 0) &&
-                 (count > (-cur_pfn & (SUPERPAGE_2MB_NR_PFNS-1))) )
-                count = -cur_pfn & (SUPERPAGE_2MB_NR_PFNS-1);
-            else if ( ((count & (SUPERPAGE_2MB_NR_PFNS-1)) != 0) &&
-                      (count > SUPERPAGE_2MB_NR_PFNS) )
-                count &= ~(SUPERPAGE_2MB_NR_PFNS - 1); /* clip non-s.p. tail */
 
-            /* Attempt to allocate superpage extents. */
-            if ( ((count | cur_pfn) & (SUPERPAGE_2MB_NR_PFNS - 1)) == 0 )
+            cur_pfn = page_array[cur_pages];
+
+            /* Take care the corner cases of super page tails */
+            if ( ((cur_pfn & (SUPERPAGE_1GB_NR_PFNS-1)) != 0) &&
+                 (count > (-cur_pfn & (SUPERPAGE_1GB_NR_PFNS-1))) )
+                count = -cur_pfn & (SUPERPAGE_1GB_NR_PFNS-1);
+            else if ( ((count & (SUPERPAGE_1GB_NR_PFNS-1)) != 0) &&
+                      (count > SUPERPAGE_1GB_NR_PFNS) )
+                count &= ~(SUPERPAGE_1GB_NR_PFNS - 1);
+
+            /* Attemp to allocate 1GB super page. Because in each pass we only
+             * allocate at most 1GB, we don't have to clip super page boundaries.
+             */
+            if ( ((count | cur_pfn) & (SUPERPAGE_1GB_NR_PFNS - 1)) == 0 &&
+                 /* Check if there exists MMIO hole in the 1GB memory range */
+                 !check_mmio_hole(cur_pfn << PAGE_SHIFT,
+                                  SUPERPAGE_1GB_NR_PFNS << PAGE_SHIFT,
+                                  mmio_start, mmio_size) )
             {
                 long done;
-                unsigned long nr_extents = count >> SUPERPAGE_2MB_SHIFT;
+                unsigned long nr_extents = count >> SUPERPAGE_1GB_SHIFT;
                 xen_pfn_t sp_extents[nr_extents];
 
-                for ( i = 0; i < nr_extents; i++ )
-                    sp_extents[i] = page_array[cur_pages+(i<<SUPERPAGE_2MB_SHIFT)];
+                for ( j = 0; j < nr_extents; j++ )
+                    sp_extents[j] = page_array[cur_pages+(j<<SUPERPAGE_1GB_SHIFT)];
 
-                done = xc_domain_populate_physmap(xch, dom, nr_extents, SUPERPAGE_2MB_SHIFT,
-                                                  pod_mode, sp_extents);
+                done = xc_domain_populate_physmap(xch, dom, nr_extents, SUPERPAGE_1GB_SHIFT,
+                                                  new_memflags, sp_extents);
 
                 if ( done > 0 )
                 {
-                    stat_2mb_pages += done;
-                    done <<= SUPERPAGE_2MB_SHIFT;
+                    stat_1gb_pages += done;
+                    done <<= SUPERPAGE_1GB_SHIFT;
                     cur_pages += done;
+                    finished += done;
                     count -= done;
                 }
             }
+
+            if ( count != 0 )
+            {
+                /* Clip count to maximum 8MB extent. */
+                max_pages = SUPERPAGE_2MB_NR_PFNS * 4;
+                if ( count > max_pages )
+                    count = max_pages;
+
+                /* Clip partial superpage extents to superpage boundaries. */
+                if ( ((cur_pfn & (SUPERPAGE_2MB_NR_PFNS-1)) != 0) &&
+                     (count > (-cur_pfn & (SUPERPAGE_2MB_NR_PFNS-1))) )
+                    count = -cur_pfn & (SUPERPAGE_2MB_NR_PFNS-1);
+                else if ( ((count & (SUPERPAGE_2MB_NR_PFNS-1)) != 0) &&
+                          (count > SUPERPAGE_2MB_NR_PFNS) )
+                    count &= ~(SUPERPAGE_2MB_NR_PFNS - 1); /* clip non-s.p. tail */
+
+                /* Attempt to allocate superpage extents. */
+                if ( ((count | cur_pfn) & (SUPERPAGE_2MB_NR_PFNS - 1)) == 0 )
+                {
+                    long done;
+                    unsigned long nr_extents = count >> SUPERPAGE_2MB_SHIFT;
+                    xen_pfn_t sp_extents[nr_extents];
+
+                    for ( j = 0; j < nr_extents; j++ )
+                        sp_extents[j] = page_array[cur_pages+(j<<SUPERPAGE_2MB_SHIFT)];
+
+                    done = xc_domain_populate_physmap(xch, dom, nr_extents, SUPERPAGE_2MB_SHIFT,
+                                                      new_memflags, sp_extents);
+
+                    if ( done > 0 )
+                    {
+                        stat_2mb_pages += done;
+                        done <<= SUPERPAGE_2MB_SHIFT;
+                        cur_pages += done;
+                        finished += done;
+                        count -= done;
+                    }
+                }
+            }
+
+            /* Fall back to 4kB extents. */
+            if ( count != 0 )
+            {
+                rc = xc_domain_populate_physmap_exact(
+                    xch, dom, count, 0, new_memflags, &page_array[cur_pages]);
+                cur_pages += count;
+                finished += count;
+                stat_normal_pages += count;
+            }
         }
 
-        /* Fall back to 4kB extents. */
-        if ( count != 0 )
-        {
-            rc = xc_domain_populate_physmap_exact(
-                xch, dom, count, 0, pod_mode, &page_array[cur_pages]);
-            cur_pages += count;
-            stat_normal_pages += count;
-        }
+        if ( rc != 0 )
+            break;
     }
 
     if ( rc != 0 )
@@ -469,7 +530,7 @@ static int setup_guest(xc_interface *xch,
               xch, dom, PAGE_SIZE, PROT_READ | PROT_WRITE,
               HVM_INFO_PFN)) == NULL )
         goto error_out;
-    build_hvm_info(hvm_info_page, v_end, mmio_start, mmio_size);
+    build_hvm_info(hvm_info_page, v_end, mmio_start, mmio_size, args);
     munmap(hvm_info_page, PAGE_SIZE);
 
     /* Allocate and clear special pages. */
@@ -608,6 +669,9 @@ int xc_hvm_build(xc_interface *xch, uint32_t domid,
             args.acpi_module.guest_addr_out;
         hvm_args->smbios_module.guest_addr_out = 
             args.smbios_module.guest_addr_out;
+        hvm_args->lowmem_end = args.lowmem_end;
+        hvm_args->highmem_end = args.highmem_end;
+        hvm_args->mmio_start = args.mmio_start;
     }
 
     free(image);
