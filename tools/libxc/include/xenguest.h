@@ -236,6 +236,15 @@ struct xc_hvm_build_args {
     struct xc_hvm_firmware_module smbios_module;
     /* Whether to use claim hypercall (1 - enable, 0 - disable). */
     int claim_enabled;
+
+    /* vNUMA information*/
+    struct xc_vnuma_info *vnuma_info;
+    unsigned int nr_vnuma_info;
+
+    /* Out parameters  */
+    uint64_t lowmem_end;
+    uint64_t highmem_end;
+    uint64_t mmio_start;
 };
 
 /**
