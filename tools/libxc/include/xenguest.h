@@ -230,6 +230,13 @@ struct xc_hvm_build_args {
     struct xc_hvm_firmware_module smbios_module;
     /* Whether to use claim hypercall (1 - enable, 0 - disable). */
     int claim_enabled;
+    unsigned int nr_vnodes;	  /* Number of vnodes */
+    unsigned int *vnode_to_pnode; /* Vnode to pnode mapping */
+    uint64_t *vnode_size;	  /* Size of vnodes */
+    /* Out parameters  */
+    uint64_t lowmem_end;
+    uint64_t highmem_end;
+    uint64_t mmio_start;
 };
 
 /**
