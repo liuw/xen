@@ -702,20 +702,20 @@ out:
 
 static int hvm_build_set_params(xc_interface *handle, uint32_t domid,
                                 libxl_domain_build_info *info,
-                                int store_evtchn, unsigned long *store_mfn,
-                                int console_evtchn, unsigned long *console_mfn,
-                                domid_t store_domid, domid_t console_domid)
+                                libxl__domain_build_state *state)
 {
     struct hvm_info_table *va_hvm;
     uint8_t *va_map, sum;
     uint64_t str_mfn, cons_mfn;
-    int i;
+    int i, rc;
 
     va_map = xc_map_foreign_range(handle, domid,
                                   XC_PAGE_SIZE, PROT_READ | PROT_WRITE,
                                   HVM_INFO_PFN);
-    if (va_map == NULL)
-        return -1;
+    if (va_map == NULL) {
+        rc = ERROR_FAIL;
+        goto out;
+    }
 
     va_hvm = (struct hvm_info_table *)(va_map + HVM_INFO_OFFSET);
     va_hvm->apic_mode = libxl_defbool_val(info->u.hvm.apic);
@@ -727,16 +727,27 @@ static int hvm_build_set_params(xc_interface *handle, uint32_t domid,
     va_hvm->checksum -= sum;
     munmap(va_map, XC_PAGE_SIZE);
 
-    xc_hvm_param_get(handle, domid, HVM_PARAM_STORE_PFN, &str_mfn);
-    xc_hvm_param_get(handle, domid, HVM_PARAM_CONSOLE_PFN, &cons_mfn);
-    xc_hvm_param_set(handle, domid, HVM_PARAM_STORE_EVTCHN, store_evtchn);
-    xc_hvm_param_set(handle, domid, HVM_PARAM_CONSOLE_EVTCHN, console_evtchn);
+    rc = xc_hvm_param_get(handle, domid, HVM_PARAM_STORE_PFN, &str_mfn);
+    if (rc) { rc = ERROR_FAIL; goto out; }
+    rc = xc_hvm_param_get(handle, domid, HVM_PARAM_CONSOLE_PFN, &cons_mfn);
+    if (rc) { rc = ERROR_FAIL; goto out; }
+    rc = xc_hvm_param_set(handle, domid, HVM_PARAM_STORE_EVTCHN,
+                          state->store_port);
+    if (rc) { rc = ERROR_FAIL; goto out; }
+    rc = xc_hvm_param_set(handle, domid, HVM_PARAM_CONSOLE_EVTCHN,
+                          state->console_port);
+    if (rc) { rc = ERROR_FAIL; goto out; }
 
-    *store_mfn = str_mfn;
-    *console_mfn = cons_mfn;
+    state->store_mfn = str_mfn;
+    state->console_mfn = cons_mfn;
 
-    xc_dom_gnttab_hvm_seed(handle, domid, *console_mfn, *store_mfn, console_domid, store_domid);
-    return 0;
+    rc = xc_dom_gnttab_hvm_seed(handle, domid, state->console_mfn,
+                                state->store_mfn,
+                                state->console_domid,
+                                state->store_domid);
+    if (rc) { rc = ERROR_FAIL; goto out; }
+out:
+    return rc;
 }
 
 static int hvm_build_set_xs_values(libxl__gc *gc,
@@ -918,10 +929,7 @@ int libxl__build_hvm(libxl__gc *gc, uint32_t domid,
         ret = set_vnuma_info(gc, domid, info, state);
         if (ret) goto out;
     }
-    ret = hvm_build_set_params(ctx->xch, domid, info, state->store_port,
-                               &state->store_mfn, state->console_port,
-                               &state->console_mfn, state->store_domid,
-                               state->console_domid);
+    ret = hvm_build_set_params(ctx->xch, domid, info, state);
     if (ret) {
         LOGEV(ERROR, ret, "hvm build set params failed");
         goto out;
