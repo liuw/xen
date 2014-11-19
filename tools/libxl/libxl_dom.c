@@ -885,12 +885,39 @@ int libxl__build_hvm(libxl__gc *gc, uint32_t domid,
         goto out;
     }
 
+    if (info->num_vnuma_nodes != 0) {
+        int i;
+
+        args.nr_vnuma_info = info->num_vnuma_nodes;
+        args.vnuma_info = libxl__malloc(gc, sizeof(*args.vnuma_info) *
+                                        args.nr_vnuma_info);
+        for (i = 0; i < args.nr_vnuma_info; i++) {
+            args.vnuma_info[i].vnode = i;
+            args.vnuma_info[i].pnode = info->vnuma_nodes[i].pnode;
+            args.vnuma_info[i].pages = info->vnuma_nodes[i].memkb >> 2;
+        }
+
+        /* Consider video ram belongs to node 0 */
+        args.vnuma_info[0].pages -= (info->video_memkb >> 2);
+    }
+
     ret = xc_hvm_build(ctx->xch, domid, &args);
     if (ret) {
         LOGEV(ERROR, ret, "hvm building failed");
         goto out;
     }
 
+    if (info->num_vnuma_nodes != 0) {
+        ret = libxl__vnuma_build_vmemrange_hvm(gc, domid, info, state, &args);
+        if (ret) {
+            LOGEV(ERROR, ret, "hvm build vmemranges failed");
+            goto out;
+        }
+        ret = libxl__vnuma_config_check(gc, info, state);
+        if (ret) goto out;
+        ret = set_vnuma_info(gc, domid, info, state);
+        if (ret) goto out;
+    }
     ret = hvm_build_set_params(ctx->xch, domid, info, state->store_port,
                                &state->store_mfn, state->console_port,
                                &state->console_mfn, state->store_domid,
