@@ -163,6 +163,62 @@ int libxl__vnuma_build_vmemrange_pv(libxl__gc *gc,
     return libxl__arch_vnuma_build_vmemrange(gc, domid, b_info, state);
 }
 
+/* Build vmemranges for HVM guest */
+int libxl__vnuma_build_vmemrange_hvm(libxl__gc *gc,
+                                     uint32_t domid,
+                                     libxl_domain_build_info *b_info,
+                                     libxl__domain_build_state *state,
+                                     struct xc_hvm_build_args *args)
+{
+    uint64_t hole_start, hole_end, next;
+    int i, x;
+    xen_vmemrange_t *v;
+
+    /* Derive vmemranges from vnode size and memory hole.
+     *
+     * Guest physical address space layout:
+     * [0, hole_start) [hole_start, hole_end) [hole_end, highmem_end)
+     */
+    hole_start = args->lowmem_end < args->mmio_start ?
+        args->lowmem_end : args->mmio_start;
+    hole_end = (args->mmio_start + args->mmio_size) > (1ULL << 32) ?
+        (args->mmio_start + args->mmio_size) : (1ULL << 32);
+
+    assert(state->vmemranges == NULL);
+
+    next = 0;
+    x = 0;
+    v = NULL;
+    for (i = 0; i < b_info->num_vnuma_nodes; i++) {
+        libxl_vnode_info *p = &b_info->vnuma_nodes[i];
+        uint64_t remaining = (p->mem << 20);
+
+        while (remaining > 0) {
+            uint64_t count = remaining;
+
+            if (next >= hole_start && next < hole_end)
+                next = hole_end;
+            if ((next < hole_start) && (next + remaining >= hole_start))
+                count = hole_start - next;
+
+            v = libxl__realloc(gc, v, sizeof(xen_vmemrange_t) * (x + 1));
+            v[x].start = next;
+            v[x].end = next + count;
+            v[x].flags = 0;
+            v[x].nid = i;
+
+            x++;
+            remaining -= count;
+            next += count;
+        }
+    }
+
+    state->vmemranges = v;
+    state->num_vmemranges = x;
+
+    return 0;
+}
+
 /*
  * Local variables:
  * mode: C
