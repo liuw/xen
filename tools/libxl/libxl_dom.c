@@ -707,7 +707,13 @@ static int hvm_build_set_params(xc_interface *handle, uint32_t domid,
     struct hvm_info_table *va_hvm;
     uint8_t *va_map, sum;
     uint64_t str_mfn, cons_mfn;
-    int i, rc;
+    int i, j, rc;
+
+    if (state->num_vmemranges > HVM_MAX_VMEMRANGES ||
+        info->num_vnuma_nodes * info->num_vnuma_nodes > HVM_MAX_LOCALITIES) {
+        rc = ERROR_INVAL;
+        goto out;
+    }
 
     va_map = xc_map_foreign_range(handle, domid,
                                   XC_PAGE_SIZE, PROT_READ | PROT_WRITE,
@@ -722,6 +728,25 @@ static int hvm_build_set_params(xc_interface *handle, uint32_t domid,
     va_hvm->nr_vcpus = info->max_vcpus;
     memset(va_hvm->vcpu_online, 0, sizeof(va_hvm->vcpu_online));
     memcpy(va_hvm->vcpu_online, info->avail_vcpus.map, info->avail_vcpus.size);
+
+    va_hvm->nr_nodes = info->num_vnuma_nodes;
+    va_hvm->nr_localities = info->num_vnuma_nodes;
+    for (i = 0; i < info->num_vnuma_nodes; i++) {
+        int bit;
+        libxl_for_each_set_bit(bit, info->vnuma_nodes[i].vcpus)
+            va_hvm->vcpu_to_vnode[bit] = i;
+        for (j = 0; j < info->vnuma_nodes[i].num_distances; j++)
+            va_hvm->localities[i*info->num_vnuma_nodes+j] =
+                info->vnuma_nodes[i].distances[j];
+    }
+    for (i = 0; i < state->num_vmemranges; i++) {
+        va_hvm->vmemranges[i].start = state->vmemranges[i].start;
+        va_hvm->vmemranges[i].end = state->vmemranges[i].end;
+        va_hvm->vmemranges[i].flags = state->vmemranges[i].flags;
+        va_hvm->vmemranges[i].nid = state->vmemranges[i].nid;
+    }
+    va_hvm->nr_vmemranges = state->num_vmemranges;
+
     for (i = 0, sum = 0; i < va_hvm->length; i++)
         sum += ((uint8_t *) va_hvm)[i];
     va_hvm->checksum -= sum;
