@@ -263,6 +263,38 @@ static struct acpi_20_srat *construct_srat(void)
     return srat;
 }
 
+static struct acpi_20_slit *construct_slit(void)
+{
+    struct acpi_20_slit *slit;
+    unsigned int num, size;
+    int i;
+
+    num = hvm_info->nr_localities * hvm_info->nr_localities;
+    size = sizeof(*slit) + num * sizeof(uint8_t);
+
+    slit = mem_alloc(size, 16);
+    if (!slit) return NULL;
+
+    memset(slit, 0, size);
+    slit->header.signature    = ACPI_2_0_SLIT_SIGNATURE;
+    slit->header.revision     = ACPI_2_0_SLIT_REVISION;
+    fixed_strcpy(slit->header.oem_id, ACPI_OEM_ID);
+    fixed_strcpy(slit->header.oem_table_id, ACPI_OEM_TABLE_ID);
+    slit->header.oem_revision = ACPI_OEM_REVISION;
+    slit->header.creator_id   = ACPI_CREATOR_ID;
+    slit->header.creator_revision = ACPI_CREATOR_REVISION;
+
+    for ( i = 0; i < num; i++ )
+        slit->entry[i] = hvm_info->localities[i];
+
+    slit->localities = hvm_info->nr_localities;
+
+    slit->header.length = size;
+    set_checksum(slit, offsetof(struct acpi_header, checksum), size);
+
+    return slit;
+}
+
 static int construct_passthrough_tables(unsigned long *table_ptrs,
                                         int nr_tables)
 {
@@ -318,6 +350,7 @@ static int construct_secondary_tables(unsigned long *table_ptrs,
     struct acpi_20_waet *waet;
     struct acpi_20_tcpa *tcpa;
     struct acpi_20_srat *srat;
+    struct acpi_20_slit *slit;
     unsigned char *ssdt;
     static const uint16_t tis_signature[] = {0x0001, 0x0001, 0x0001};
     uint16_t *tis_hdr;
@@ -336,6 +369,9 @@ static int construct_secondary_tables(unsigned long *table_ptrs,
         srat = construct_srat();
         if (!srat) return -1;
         table_ptrs[nr_tables++] = (unsigned long)srat;
+        slit = construct_slit();
+        if (!slit) return -1;
+        table_ptrs[nr_tables++] = (unsigned long)slit;
     }
 
     /* HPET. */
