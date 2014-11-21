@@ -88,6 +88,19 @@ void pci_setup(void)
     printf("Relocating guest memory for lowmem MMIO space %s\n",
            allow_memory_relocate?"enabled":"disabled");
 
+    /* Disallow low memory relocation when vNUMA is enabled, because
+     * relocated memory ends up off node. Further more, even if we
+     * dynamically expand node coverage in hvmloader, low memory and
+     * high memory may reside in different physical nodes, blindly
+     * relocates low memory to high memory gives us a sub-optimal
+     * configuration.
+     */
+    if ( hvm_info->nr_nodes != 0 && allow_memory_relocate )
+    {
+        allow_memory_relocate = false;
+        printf("vNUMA enabled, relocating guest memory for lowmem MMIO space disabled\n");
+    }
+
     s = xenstore_read("platform/mmio_hole_size", NULL);
     if ( s )
         mmio_hole_size = strtoll(s, NULL, 0);
