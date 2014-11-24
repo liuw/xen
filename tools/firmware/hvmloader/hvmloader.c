@@ -26,6 +26,7 @@
 #include "pci_regs.h"
 #include "apic_regs.h"
 #include "acpi/acpi2_0.h"
+#include "vnuma.h"
 #include <xen/version.h>
 #include <xen/hvm/params.h>
 
@@ -260,6 +261,8 @@ int main(void)
     printf("HVM Loader\n");
 
     init_hypercalls();
+
+    init_vnuma_info();
 
     xenbus_setup();
 
