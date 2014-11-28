@@ -126,7 +126,7 @@ typedef union YYSTYPE
 #line 25 "libxlu_cfg_y.y"
 
   char *string;
-  XLU_ConfigSetting *setting;
+  XLU_ConfigValue *value;
 
 
 
@@ -377,14 +377,14 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   24
+#define YYLAST   26
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  12
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  11
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  22
+#define YYNRULES  21
 /* YYNRULES -- Number of states.  */
 #define YYNSTATES  30
 
@@ -433,8 +433,8 @@ static const yytype_uint8 yytranslate[] =
 static const yytype_uint8 yyprhs[] =
 {
        0,     0,     3,     5,     8,     9,    12,    15,    17,    20,
-      24,    26,    28,    30,    35,    37,    39,    40,    42,    46,
-      49,    55,    56
+      24,    26,    28,    30,    32,    34,    36,    41,    42,    45,
+      51,    52
 };
 
 /* YYRHS -- A `-1'-separated list of the rules' RHS.  */
@@ -443,17 +443,17 @@ static const yytype_int8 yyrhs[] =
       13,     0,    -1,    14,    -1,    14,    16,    -1,    -1,    14,
       15,    -1,    16,    17,    -1,    17,    -1,     1,     6,    -1,
        3,     7,    18,    -1,     6,    -1,     8,    -1,    19,    -1,
-       9,    22,    20,    10,    -1,     4,    -1,     5,    -1,    -1,
-      21,    -1,    21,    11,    22,    -1,    19,    22,    -1,    21,
-      11,    22,    19,    22,    -1,    -1,    22,     6,    -1
+      20,    -1,     4,    -1,     5,    -1,     9,    22,    21,    10,
+      -1,    -1,    18,    22,    -1,    21,    11,    22,    18,    22,
+      -1,    -1,    22,     6,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
        0,    47,    47,    48,    50,    51,    53,    54,    55,    57,
-      59,    60,    62,    63,    65,    66,    68,    69,    70,    72,
-      73,    75,    77
+      59,    60,    62,    63,    65,    66,    68,    70,    71,    72,
+      74,    76
 };
 #endif
 
@@ -464,7 +464,7 @@ static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "IDENT", "STRING", "NUMBER", "NEWLINE",
   "'='", "';'", "'['", "']'", "','", "$accept", "file", "stmts", "stmt",
-  "assignment", "endstmt", "value", "atom", "valuelist", "values", "nlok", 0
+  "assignment", "endstmt", "value", "atom", "list", "values", "nlok", 0
 };
 #endif
 
@@ -482,16 +482,16 @@ static const yytype_uint16 yytoknum[] =
 static const yytype_uint8 yyr1[] =
 {
        0,    12,    13,    13,    14,    14,    15,    15,    15,    16,
-      17,    17,    18,    18,    19,    19,    20,    20,    20,    21,
-      21,    22,    22
+      17,    17,    18,    18,    19,    19,    20,    21,    21,    21,
+      22,    22
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
 static const yytype_uint8 yyr2[] =
 {
        0,     2,     1,     2,     0,     2,     2,     1,     2,     3,
-       1,     1,     1,     4,     1,     1,     0,     1,     3,     2,
-       5,     0,     2
+       1,     1,     1,     1,     1,     1,     4,     0,     2,     5,
+       0,     2
 };
 
 /* YYDEFACT[STATE-NAME] -- Default reduction number in state STATE-NUM.
@@ -500,32 +500,32 @@ static const yytype_uint8 yyr2[] =
 static const yytype_uint8 yydefact[] =
 {
        4,     0,     0,     1,     0,     0,    10,    11,     5,     3,
-       7,     8,     0,     6,    14,    15,    21,     9,    12,    16,
-      22,    21,     0,    17,    19,    13,    21,    18,    21,    20
+       7,     8,     0,     6,    14,    15,    20,     9,    12,    13,
+      17,    21,    20,     0,    18,    16,    20,     0,    20,    19
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     1,     2,     8,     9,    10,    17,    18,    22,    23,
-      19
+      -1,     1,     2,     8,     9,    10,    17,    18,    19,    23,
+      20
 };
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-#define YYPACT_NINF -18
+#define YYPACT_NINF -19
 static const yytype_int8 yypact[] =
 {
-     -18,     4,     0,   -18,    -1,     6,   -18,   -18,   -18,     3,
-     -18,   -18,    11,   -18,   -18,   -18,   -18,   -18,   -18,    13,
-     -18,   -18,    12,    10,    17,   -18,   -18,    13,   -18,    17
+     -19,    20,     0,   -19,    15,    16,   -19,   -19,   -19,     4,
+     -19,   -19,    13,   -19,   -19,   -19,   -19,   -19,   -19,   -19,
+      10,   -19,   -19,    -6,    18,   -19,   -19,    10,   -19,    18
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -18,   -18,   -18,   -18,   -18,    15,   -18,   -17,   -18,   -18,
-     -14
+     -19,   -19,   -19,   -19,   -19,    17,   -18,   -19,   -19,   -19,
+     -15
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
@@ -534,22 +534,22 @@ static const yytype_int8 yypgoto[] =
 #define YYTABLE_NINF -3
 static const yytype_int8 yytable[] =
 {
-      -2,     4,    21,     5,     3,    11,     6,    24,     7,     6,
-      28,     7,    27,    12,    29,    14,    15,    14,    15,    20,
-      16,    26,    25,    20,    13
+      -2,     4,    22,     5,    25,    26,     6,    24,     7,    28,
+       6,    27,     7,    29,    14,    15,    21,    14,    15,    16,
+       3,    11,    16,    12,    21,     0,    13
 };
 
 #define yypact_value_is_default(yystate) \
-  ((yystate) == (-18))
+  ((yystate) == (-19))
 
 #define yytable_value_is_error(yytable_value) \
   YYID (0)
 
-static const yytype_uint8 yycheck[] =
+static const yytype_int8 yycheck[] =
 {
-       0,     1,    19,     3,     0,     6,     6,    21,     8,     6,
-      27,     8,    26,     7,    28,     4,     5,     4,     5,     6,
-       9,    11,    10,     6,     9
+       0,     1,    20,     3,    10,    11,     6,    22,     8,    27,
+       6,    26,     8,    28,     4,     5,     6,     4,     5,     9,
+       0,     6,     9,     7,     6,    -1,     9
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
@@ -557,8 +557,8 @@ static const yytype_uint8 yycheck[] =
 static const yytype_uint8 yystos[] =
 {
        0,    13,    14,     0,     1,     3,     6,     8,    15,    16,
-      17,     6,     7,    17,     4,     5,     9,    18,    19,    22,
-       6,    19,    20,    21,    22,    10,    11,    22,    19,    22
+      17,     6,     7,    17,     4,     5,     9,    18,    19,    20,
+      22,     6,    18,    21,    22,    10,    11,    22,    18,    22
 };
 
 #define yyerrok		(yyerrstatus = 0)
@@ -1148,7 +1148,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ctx)
 
 /* Line 1391 of yacc.c  */
 #line 43 "libxlu_cfg_y.y"
-	{ xlu__cfg_set_free((yyvaluep->setting)); };
+	{ xlu__cfg_value_free((yyvaluep->value)); };
 
 /* Line 1391 of yacc.c  */
 #line 1155 "libxlu_cfg_y.c"
@@ -1162,11 +1162,11 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ctx)
 /* Line 1391 of yacc.c  */
 #line 1164 "libxlu_cfg_y.c"
 	break;
-      case 20: /* "valuelist" */
+      case 20: /* "list" */
 
 /* Line 1391 of yacc.c  */
 #line 43 "libxlu_cfg_y.y"
-	{ xlu__cfg_set_free((yyvaluep->setting)); };
+	{ xlu__cfg_value_free((yyvaluep->value)); };
 
 /* Line 1391 of yacc.c  */
 #line 1173 "libxlu_cfg_y.c"
@@ -1175,7 +1175,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ctx)
 
 /* Line 1391 of yacc.c  */
 #line 43 "libxlu_cfg_y.y"
-	{ xlu__cfg_set_free((yyvaluep->setting)); };
+	{ xlu__cfg_value_free((yyvaluep->value)); };
 
 /* Line 1391 of yacc.c  */
 #line 1182 "libxlu_cfg_y.c"
@@ -1508,21 +1508,14 @@ yyreduce:
 
 /* Line 1806 of yacc.c  */
 #line 57 "libxlu_cfg_y.y"
-    { xlu__cfg_set_store(ctx,(yyvsp[(1) - (3)].string),(yyvsp[(3) - (3)].setting),(yylsp[(3) - (3)]).first_line); }
+    { xlu__cfg_set_store(ctx,(yyvsp[(1) - (3)].string),(yyvsp[(3) - (3)].value),(yylsp[(3) - (3)]).first_line); }
     break;
 
   case 12:
 
 /* Line 1806 of yacc.c  */
 #line 62 "libxlu_cfg_y.y"
-    { (yyval.setting)= xlu__cfg_set_mk(ctx,1,(yyvsp[(1) - (1)].string)); }
-    break;
-
-  case 13:
-
-/* Line 1806 of yacc.c  */
-#line 63 "libxlu_cfg_y.y"
-    { (yyval.setting)= (yyvsp[(3) - (4)].setting); }
+    { (yyval.value)= xlu__cfg_make_string(ctx,(yyvsp[(1) - (1)].string)); }
     break;
 
   case 14:
@@ -1543,41 +1536,34 @@ yyreduce:
 
 /* Line 1806 of yacc.c  */
 #line 68 "libxlu_cfg_y.y"
-    { (yyval.setting)= xlu__cfg_set_mk(ctx,0,0); }
+    { (yyval.value)= (yyvsp[(3) - (4)].value); }
     break;
 
   case 17:
 
 /* Line 1806 of yacc.c  */
-#line 69 "libxlu_cfg_y.y"
-    { (yyval.setting)= (yyvsp[(1) - (1)].setting); }
+#line 70 "libxlu_cfg_y.y"
+    { (yyval.value)= xlu__cfg_make_list(ctx,NULL); }
     break;
 
   case 18:
 
 /* Line 1806 of yacc.c  */
-#line 70 "libxlu_cfg_y.y"
-    { (yyval.setting)= (yyvsp[(1) - (3)].setting); }
+#line 71 "libxlu_cfg_y.y"
+    { (yyval.value)= xlu__cfg_make_list(ctx,(yyvsp[(1) - (2)].value)); }
     break;
 
   case 19:
 
 /* Line 1806 of yacc.c  */
 #line 72 "libxlu_cfg_y.y"
-    { (yyval.setting)= xlu__cfg_set_mk(ctx,2,(yyvsp[(1) - (2)].string)); }
-    break;
-
-  case 20:
-
-/* Line 1806 of yacc.c  */
-#line 73 "libxlu_cfg_y.y"
-    { xlu__cfg_set_add(ctx,(yyvsp[(1) - (5)].setting),(yyvsp[(4) - (5)].string)); (yyval.setting)= (yyvsp[(1) - (5)].setting); }
+    { xlu__cfg_list_append(ctx,(yyvsp[(1) - (5)].value),(yyvsp[(4) - (5)].value)); (yyval.value)= (yyvsp[(1) - (5)].value);}
     break;
 
 
 
 /* Line 1806 of yacc.c  */
-#line 1581 "libxlu_cfg_y.c"
+#line 1567 "libxlu_cfg_y.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
