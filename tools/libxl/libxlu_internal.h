@@ -23,17 +23,29 @@
 #include <assert.h>
 #include <regex.h>
 
-#define XLU_ConfigList XLU_ConfigSetting
-
 #include "libxlutil.h"
 
-struct XLU_ConfigSetting { /* transparent */
+typedef struct XLU_ConfigValue XLU_ConfigValue;
+
+typedef struct XLU_ConfigList {
+    int nvalues;
+    XLU_ConfigValue **values;
+} XLU_ConfigList;
+
+typedef struct XLU_ConfigValue {
+    enum XLU_ConfigValueType type;
+    union {
+        char *string;
+        XLU_ConfigList list;
+    } u;
+} XLU_ConfigValue;
+
+typedef struct XLU_ConfigSetting { /* transparent */
     struct XLU_ConfigSetting *next;
     char *name;
-    int nvalues, avalues; /* lists have avalues>1 */
-    char **values;
+    struct XLU_ConfigValue *value;
     int lineno;
-};
+} XLU_ConfigSetting;
 
 struct XLU_Config {
     XLU_ConfigSetting *settings;

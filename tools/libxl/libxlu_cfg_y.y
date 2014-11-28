@@ -24,7 +24,7 @@
 
 %union {
   char *string;
-  XLU_ConfigSetting *setting;
+  XLU_ConfigValue *value;
 }
 
 %locations
@@ -39,8 +39,8 @@
 %type <string>            atom
 %destructor { free($$); } atom IDENT STRING NUMBER
 
-%type <setting>                         value valuelist values
-%destructor { xlu__cfg_set_free($$); }  value valuelist values
+%type <value>                         value list values
+%destructor { xlu__cfg_value_free($$); }  value list values
 
 %%
 
@@ -59,18 +59,17 @@ assignment: IDENT '=' value { xlu__cfg_set_store(ctx,$1,$3,@3.first_line); }
 endstmt: NEWLINE
  |      ';'
 
-value:  atom                         { $$= xlu__cfg_set_mk(ctx,1,$1); }
- |      '[' nlok valuelist ']'       { $$= $3; }
+value:  atom                         { $$= xlu__cfg_make_string(ctx,$1); }
+ |      list
 
 atom:   STRING                   { $$= $1; }
  |      NUMBER                   { $$= $1; }
 
-valuelist: /* empty */           { $$= xlu__cfg_set_mk(ctx,0,0); }
- |      values                  { $$= $1; }
- |      values ',' nlok         { $$= $1; }
+list:   '[' nlok values ']'      { $$= $3; }
 
-values: atom nlok                  { $$= xlu__cfg_set_mk(ctx,2,$1); }
- |      values ',' nlok atom nlok  { xlu__cfg_set_add(ctx,$1,$4); $$= $1; }
+values: /* empty */                { $$= xlu__cfg_make_list(ctx,NULL); }
+ |      value nlok                 { $$= xlu__cfg_make_list(ctx,$1); }
+ |      values ',' nlok value nlok { xlu__cfg_list_append(ctx,$1,$4); $$= $1;}
 
 nlok:
         /* nothing */
