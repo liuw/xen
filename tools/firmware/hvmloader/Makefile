@@ -87,6 +87,11 @@ endif
 all: subdirs-all
 	$(MAKE) hvmloader
 
+subdirs-all: errno.h
+
+errno.h:
+	ln -sf $(XEN_ROOT)/xen/include/xen/errno.h .
+
 ovmf.o rombios.o seabios.o hvmloader.o: roms.inc
 smbios.o: CFLAGS += -D__SMBIOS_DATE__="\"$(shell date +%m/%d/%Y)\""
 
@@ -136,7 +141,7 @@ endif
 
 .PHONY: clean
 clean: subdirs-clean
-	rm -f roms.inc roms.inc.new acpi.h
+	rm -f roms.inc roms.inc.new acpi.h errno.h
 	rm -f hvmloader hvmloader.tmp *.o $(DEPS)
 
 -include $(DEPS)
