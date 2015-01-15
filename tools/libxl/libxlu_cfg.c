@@ -332,18 +332,13 @@ XLU_ConfigValue *xlu__cfg_string_mk(CfgParseContext *ctx, char *atom)
     return NULL;
 }
 
-XLU_ConfigValue *xlu__cfg_list_mk(CfgParseContext *ctx, char *atom)
+XLU_ConfigValue *xlu__cfg_list_mk(CfgParseContext *ctx,
+                                  XLU_ConfigValue *val)
 {
     XLU_ConfigValue *value = NULL;
     XLU_ConfigValue **values = NULL;
-    XLU_ConfigValue *val = NULL;
 
     if (ctx->err) goto x;
-
-    val = malloc(sizeof(*val));
-    if (!val) goto xe;
-    val->type = XLU_STRING;
-    val->u.string = atom;
 
     values = malloc(sizeof(*values));
     if (!values) goto xe;
@@ -362,30 +357,23 @@ XLU_ConfigValue *xlu__cfg_list_mk(CfgParseContext *ctx, char *atom)
  x:
     free(value);
     free(values);
-    free(val);
-    free(atom);
+    xlu__cfg_value_free(val);
     return NULL;
 }
 
 void xlu__cfg_list_append(CfgParseContext *ctx,
                           XLU_ConfigValue *list,
-                          char *atom)
+                          XLU_ConfigValue *val)
 {
     XLU_ConfigValue **new_val = NULL;
-    XLU_ConfigValue *val = NULL;
     if (ctx->err) return;
 
-    assert(atom);
+    assert(val);
     assert(list->type == XLU_LIST);
 
     new_val = realloc(list->u.list.values,
                       sizeof(*new_val) * (list->u.list.nvalues+1));
     if (!new_val) goto xe;
-
-    val = malloc(sizeof(*val));
-    if (!val) goto xe;
-    val->type = XLU_STRING;
-    val->u.string = atom;
 
     list->u.list.values = new_val;
     list->u.list.values[list->u.list.nvalues] = val;
@@ -396,8 +384,7 @@ void xlu__cfg_list_append(CfgParseContext *ctx,
  xe:
     ctx->err = errno;
     free(new_val);
-    free(val);
-    free(atom);
+    xlu__cfg_value_free(val);
     return;
 }
 
