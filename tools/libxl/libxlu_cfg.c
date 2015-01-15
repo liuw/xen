@@ -199,6 +199,31 @@ static int find_atom(const XLU_Config *cfg, const char *n,
     return 0;
 }
 
+
+enum XLU_ConfigValueType xlu_cfg_value_type(const XLU_ConfigValue *value)
+{
+    return value->type;
+}
+
+const char *xlu_cfg_value_get_string(const XLU_ConfigValue *value)
+{
+    assert(value->type == XLU_STRING);
+    return value->u.string;
+}
+
+const XLU_ConfigList *xlu_cfg_value_get_list(const XLU_ConfigValue *value)
+{
+    assert(value->type == XLU_LIST);
+    return &value->u.list;
+}
+
+const XLU_ConfigValue *xlu_cfg_get_listitem2(const XLU_ConfigList *list,
+                                             int entry)
+{
+    if (entry < 0 || entry >= list->nvalues) return NULL;
+    return list->values[entry];
+}
+
 int xlu_cfg_get_string(const XLU_Config *cfg, const char *n,
                        const char **value_r, int dont_warn) {
     XLU_ConfigSetting *set;
