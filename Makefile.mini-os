@@ -1,0 +1,15 @@
+.PHONY: mini-os-dir
+mini-os-dir:
+	GIT=$(GIT) $(XEN_ROOT)/scripts/git-checkout.sh \
+		$(MINIOS_UPSTREAM_URL) \
+		$(MINIOS_UPSTREAM_REVISION) \
+		$(XEN_ROOT)/extras/mini-os
+
+.PHONY: mini-os-dir-force-update
+mini-os-dir-force-update: mini-os-dir
+	set -ex; \
+	if [ "$(MINIOS_UPSTREAM_REVISION)" ]; then \
+		cd extras/mini-os-remote; \
+		$(GIT) fetch origin; \
+		$(GIT) reset --hard $(MINIOS_UPSTREAM_REVISION); \
+	fi
