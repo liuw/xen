@@ -158,7 +158,6 @@ struct domain_create {
 };
 
 
-static uint32_t find_domain(const char *p) __attribute__((warn_unused_result));
 static uint32_t find_domain(const char *p)
 {
     uint32_t domid;
@@ -987,6 +986,143 @@ static int parse_nic_config(libxl_device_nic *nic, XLU_Config **config, char *to
     return 0;
 }
 
+static void parse_vnuma_config(const XLU_Config *config,
+                               libxl_domain_build_info *b_info)
+{
+    libxl_physinfo physinfo;
+    uint32_t nr_nodes;
+    XLU_ConfigList *vnuma;
+    int i, j, len, num_vnuma;
+
+
+    libxl_physinfo_init(&physinfo);
+    if (libxl_get_physinfo(ctx, &physinfo) != 0) {
+        libxl_physinfo_dispose(&physinfo);
+        fprintf(stderr, "libxl_get_physinfo failed\n");
+        exit(1);
+    }
+
+    nr_nodes = physinfo.nr_nodes;
+    libxl_physinfo_dispose(&physinfo);
+
+    if (xlu_cfg_get_list(config, "vnuma", &vnuma, &num_vnuma, 1))
+        return;
+
+    b_info->num_vnuma_nodes = num_vnuma;
+    b_info->vnuma_nodes = xcalloc(num_vnuma, sizeof(libxl_vnode_info));
+
+    for (i = 0; i < b_info->num_vnuma_nodes; i++) {
+        libxl_vnode_info *p = &b_info->vnuma_nodes[i];
+
+        libxl_vnode_info_init(p);
+        libxl_cpu_bitmap_alloc(ctx, &p->vcpus, b_info->max_vcpus);
+        libxl_bitmap_set_none(&p->vcpus);
+        p->distances = xcalloc(b_info->num_vnuma_nodes,
+                               sizeof(*p->distances));
+        p->num_distances = b_info->num_vnuma_nodes;
+    }
+
+    for (i = 0; i < num_vnuma; i++) {
+        XLU_ConfigValue *vnode_spec, *conf_option;
+        XLU_ConfigList *vnode_config_list;
+        int conf_count;
+        libxl_vnode_info *p = &b_info->vnuma_nodes[i];
+
+        vnode_spec = xlu_cfg_get_listitem2(vnuma, i);
+        assert(vnode_spec);
+
+        xlu_cfg_value_get_list(config, vnode_spec, &vnode_config_list, 0);
+        if (!vnode_config_list) {
+            fprintf(stderr, "xl: cannot get vnode config option list\n");
+            exit(1);
+        }
+
+        for (conf_count = 0;
+             (conf_option =
+              xlu_cfg_get_listitem2(vnode_config_list, conf_count));
+             conf_count++) {
+
+            if (xlu_cfg_value_type(conf_option) == XLU_STRING) {
+                char *buf, *option_untrimmed, *value_untrimmed;
+                char *option, *value;
+                char *endptr;
+                unsigned long val;
+
+                xlu_cfg_value_get_string(config, conf_option, &buf, 0);
+
+                if (!buf) continue;
+
+                if (split_string_into_pair(buf, "=",
+                                           &option_untrimmed,
+                                           &value_untrimmed)) {
+                    fprintf(stderr, "xl: failed to split \"%s\" into pair\n",
+                            buf);
+                    exit(1);
+                }
+                trim(isspace, option_untrimmed, &option);
+                trim(isspace, value_untrimmed, &value);
+
+#define ABORT_IF_FAILED(str)                                            \
+                do {                                                    \
+                    if (endptr == value || val == ULONG_MAX) {          \
+                        fprintf(stderr,                                 \
+                                "xl: failed to convert \"%s\" to number\n", \
+                                (str));                                 \
+                        exit(1);                                        \
+                    }                                                   \
+                } while (0)
+
+                if (!strcmp("pnode", option)) {
+                    val = strtoul(value, &endptr, 10);
+                    ABORT_IF_FAILED(value);
+                    if (val >= nr_nodes) {
+                        fprintf(stderr,
+                                "xl: invalid pnode number: %lu\n", val);
+                        exit(1);
+                    }
+                    p->pnode = val;
+                    libxl_defbool_set(&b_info->numa_placement, false);
+                } else if (!strcmp("size", option)) {
+                    val = strtoul(value, &endptr, 10);
+                    ABORT_IF_FAILED(value);
+                    p->memkb = val << 10;
+                } else if (!strcmp("vcpus", option)) {
+                    libxl_string_list cpu_spec_list;
+                    int cpu;
+                    unsigned long s, e;
+
+                    split_string_into_string_list(value, ",", &cpu_spec_list);
+                    len = libxl_string_list_length(&cpu_spec_list);
+
+                    for (j = 0; j < len; j++) {
+                        parse_range(cpu_spec_list[j], &s, &e);
+                        for (cpu = s; cpu <=e; cpu++)
+                            libxl_bitmap_set(&p->vcpus, cpu);
+                    }
+                    libxl_string_list_dispose(&cpu_spec_list);
+                } else if (!strcmp("vdistances", option)) {
+                    libxl_string_list vdist;
+
+                    split_string_into_string_list(value, ",", &vdist);
+                    len = libxl_string_list_length(&vdist);
+
+                    for (j = 0; j < len; j++) {
+                        val = strtoul(vdist[j], &endptr, 10);
+                        ABORT_IF_FAILED(vdist[j]);
+                        p->distances[j] = val;
+                    }
+                    libxl_string_list_dispose(&vdist);
+                }
+#undef ABORT_IF_FAILED
+                free(option);
+                free(value);
+                free(option_untrimmed);
+                free(value_untrimmed);
+            }
+        }
+    }
+}
+
 static void parse_config_data(const char *config_source,
                               const char *config_data,
                               int config_len,
@@ -1176,6 +1312,8 @@ static void parse_config_data(const char *config_source,
             exit (1);
         }
     }
+
+    parse_vnuma_config(config, b_info);
 
     if (!xlu_cfg_get_long(config, "rtc_timeoffset", &l, 0))
         b_info->rtc_timeoffset = l;
