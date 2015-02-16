@@ -1063,7 +1063,7 @@ static int __init iommu_set_interrupt(struct acpi_drhd_unit *drhd)
     struct irq_desc *desc;
 
     irq = create_irq(rhsa ? pxm_to_node(rhsa->proximity_domain)
-                          : NUMA_NO_NODE);
+                          : XEN_NUMA_NO_NODE);
     if ( irq <= 0 )
     {
         dprintk(XENLOG_ERR VTDPREFIX, "IOMMU: no irq available!\n");
@@ -1958,7 +1958,7 @@ static void adjust_irq_affinity(struct acpi_drhd_unit *drhd)
 {
     const struct acpi_rhsa_unit *rhsa = drhd_to_rhsa(drhd);
     unsigned int node = rhsa ? pxm_to_node(rhsa->proximity_domain)
-                             : NUMA_NO_NODE;
+                             : XEN_NUMA_NO_NODE;
     const cpumask_t *cpumask = &cpu_online_map;
 
     if ( node < MAX_NUMNODES && node_online(node) &&

@@ -375,7 +375,7 @@ static int __init hpet_assign_irq(struct hpet_event_channel *ch)
 {
     int irq;
 
-    if ( (irq = create_irq(NUMA_NO_NODE)) < 0 )
+    if ( (irq = create_irq(XEN_NUMA_NO_NODE)) < 0 )
         return irq;
 
     ch->msi.irq = irq;

@@ -782,7 +782,7 @@ static bool_t __init set_iommu_interrupt_handler(struct amd_iommu *iommu)
     unsigned long flags;
     u16 control;
 
-    irq = create_irq(NUMA_NO_NODE);
+    irq = create_irq(XEN_NUMA_NO_NODE);
     if ( irq <= 0 )
     {
         dprintk(XENLOG_ERR, "IOMMU: no irqs\n");

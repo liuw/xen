@@ -588,7 +588,7 @@ static struct page_info *alloc_heap_pages(
     bool_t need_tlbflush = 0;
     uint32_t tlbflush_timestamp = 0;
 
-    if ( node == NUMA_NO_NODE )
+    if ( node == XEN_NUMA_NO_NODE )
     {
         memflags &= ~MEMF_exact_node;
         if ( d != NULL )
@@ -1286,7 +1286,7 @@ static void __init smp_scrub_heap_pages(void *data)
     else
     {
         node = cpu_to_node(cpu);
-        if ( node == NUMA_NO_NODE )
+        if ( node == XEN_NUMA_NO_NODE )
             return;
         r = &region[node];
     }

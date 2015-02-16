@@ -37,13 +37,13 @@ unsigned long memnodemapsize;
 u8 *memnodemap;
 
 unsigned char cpu_to_node[NR_CPUS] __read_mostly = {
-    [0 ... NR_CPUS-1] = NUMA_NO_NODE
+    [0 ... NR_CPUS-1] = XEN_NUMA_NO_NODE
 };
 /*
  * Keep BIOS's CPU2node information, should not be used for memory allocaion
  */
 unsigned char apicid_to_node[MAX_LOCAL_APIC] __cpuinitdata = {
-    [0 ... MAX_LOCAL_APIC-1] = NUMA_NO_NODE
+    [0 ... MAX_LOCAL_APIC-1] = XEN_NUMA_NO_NODE
 };
 cpumask_t node_to_cpumask[MAX_NUMNODES] __read_mostly;
 
@@ -71,7 +71,7 @@ static int __init populate_memnodemap(const struct node *nodes,
     unsigned long spdx, epdx;
     int i, res = -1;
 
-    memset(memnodemap, NUMA_NO_NODE, memnodemapsize * sizeof(*memnodemap));
+    memset(memnodemap, XEN_NUMA_NO_NODE, memnodemapsize * sizeof(*memnodemap));
     for ( i = 0; i < numnodes; i++ )
     {
         spdx = paddr_to_pdx(nodes[i].start);
@@ -81,7 +81,7 @@ static int __init populate_memnodemap(const struct node *nodes,
         if ( (epdx >> shift) >= memnodemapsize )
             return 0;
         do {
-            if ( memnodemap[spdx >> shift] != NUMA_NO_NODE )
+            if ( memnodemap[spdx >> shift] != XEN_NUMA_NO_NODE )
                 return -1;
 
             if ( !nodeids )
@@ -199,7 +199,7 @@ void __init numa_init_array(void)
     rr = first_node(node_online_map);
     for ( i = 0; i < nr_cpu_ids; i++ )
     {
-        if ( cpu_to_node[i] != NUMA_NO_NODE )
+        if ( cpu_to_node[i] != XEN_NUMA_NO_NODE )
             continue;
         numa_set_node(i, rr);
         rr = next_node(rr, node_online_map);
@@ -349,7 +349,7 @@ void __init init_cpu_to_node(void)
         if ( apicid == BAD_APICID )
             continue;
         node = apicid_to_node[apicid];
-        if ( node == NUMA_NO_NODE || !node_online(node) )
+        if ( node == XEN_NUMA_NO_NODE || !node_online(node) )
             node = 0;
         numa_set_node(i, node);
     }
@@ -432,7 +432,7 @@ static void dump_numa(unsigned char key)
 
             err = snprintf(keyhandler_scratch, 12, "%3u",
                     vnuma->vnode_to_pnode[i]);
-            if ( err < 0 || vnuma->vnode_to_pnode[i] == NUMA_NO_NODE )
+            if ( err < 0 || vnuma->vnode_to_pnode[i] == XEN_NUMA_NO_NODE )
                 strlcpy(keyhandler_scratch, "???", sizeof(keyhandler_scratch));
 
             printk("       %3u: pnode %s,", i, keyhandler_scratch);

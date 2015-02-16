@@ -27,7 +27,7 @@ static nodemask_t memory_nodes_parsed __initdata;
 static nodemask_t processor_nodes_parsed __initdata;
 static nodemask_t nodes_found __initdata;
 static struct node nodes[MAX_NUMNODES] __initdata;
-static u8 __read_mostly pxm2node[256] = { [0 ... 255] = NUMA_NO_NODE };
+static u8 __read_mostly pxm2node[256] = { [0 ... 255] = XEN_NUMA_NO_NODE };
 
 
 static int num_node_memblks;
@@ -110,9 +110,9 @@ static __init void bad_srat(void)
 	printk(KERN_ERR "SRAT: SRAT not used.\n");
 	acpi_numa = -1;
 	for (i = 0; i < MAX_LOCAL_APIC; i++)
-		apicid_to_node[i] = NUMA_NO_NODE;
+		apicid_to_node[i] = XEN_NUMA_NO_NODE;
 	for (i = 0; i < ARRAY_SIZE(pxm2node); i++)
-		pxm2node[i] = NUMA_NO_NODE;
+		pxm2node[i] = XEN_NUMA_NO_NODE;
 	mem_hotplug = 0;
 }
 
@@ -429,10 +429,10 @@ int __init acpi_scan_nodes(u64 start, u64 end)
 		setup_node_bootmem(i, nodes[i].start, nodes[i].end);
 	}
 	for (i = 0; i < nr_cpu_ids; i++) {
-		if (cpu_to_node[i] == NUMA_NO_NODE)
+		if (cpu_to_node[i] == XEN_NUMA_NO_NODE)
 			continue;
 		if (!node_isset(cpu_to_node[i], processor_nodes_parsed))
-			numa_set_node(i, NUMA_NO_NODE);
+			numa_set_node(i, XEN_NUMA_NO_NODE);
 	}
 	numa_init_array();
 	return 0;
