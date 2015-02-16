@@ -692,7 +692,7 @@ out:
     return rc;
 }
 
-static int construct_memop_from_reservation(
+static int construct_memop_from_reservation(struct domain *d,
                const struct xen_memory_reservation *r,
                struct memop_args *a)
 {
@@ -716,9 +716,37 @@ static int construct_memop_from_reservation(
         a->memflags = MEMF_bits(address_bits);
     }
 
-    a->memflags |= MEMF_node(XENMEMF_get_node(r->mem_flags));
-    if ( r->mem_flags & XENMEMF_exact_node_request )
-        a->memflags |= MEMF_exact_node;
+    if ( r->mem_flags & XENMEMF_vnode )
+    {
+        unsigned int vnode, pnode;
+
+        read_lock(&d->vnuma_rwlock);
+        if ( d->vnuma )
+        {
+            vnode = XENMEMF_get_node(r->mem_flags);
+            if ( vnode >= d->vnuma->nr_vnodes )
+            {
+                rc = -EINVAL;
+                read_unlock(&d->vnuma_rwlock);
+                goto out;
+            }
+
+            pnode = d->vnuma->vnode_to_pnode[vnode];
+            if ( pnode != XEN_NUMA_NO_NODE )
+            {
+                a->memflags |= MEMF_node(pnode);
+                if ( r->mem_flags & XENMEMF_exact_node_request )
+                    a->memflags |= MEMF_exact_node;
+            }
+        }
+        read_unlock(&d->vnuma_rwlock);
+    }
+    else
+    {
+        a->memflags |= MEMF_node(XENMEMF_get_node(r->mem_flags));
+        if ( r->mem_flags & XENMEMF_exact_node_request )
+            a->memflags |= MEMF_exact_node;
+    }
 
     rc = 0;
  out:
@@ -753,9 +781,6 @@ long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
         args.nr_done      = start_extent;
         args.preempted    = 0;
 
-        if ( construct_memop_from_reservation(&reservation, &args) )
-            return start_extent;
-
         if ( op == XENMEM_populate_physmap
              && (reservation.mem_flags & XENMEMF_populate_on_demand) )
             args.memflags |= MEMF_populate_on_demand;
@@ -764,6 +789,12 @@ long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
         if ( d == NULL )
             return start_extent;
         args.domain = d;
+
+        if ( construct_memop_from_reservation(d, &reservation, &args) )
+        {
+            rcu_unlock_domain(d);
+            return start_extent;
+        }
 
         if ( xsm_memory_adjust_reservation(XSM_TARGET, current->domain, d) )
         {
