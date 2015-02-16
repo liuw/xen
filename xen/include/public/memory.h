@@ -29,6 +29,8 @@
 
 #include "xen.h"
 
+#define XEN_NUMA_NO_NODE    0xFF
+
 /*
  * Increase or decrease the specified domain's memory reservation. Returns the
  * number of extents successfully allocated or freed.

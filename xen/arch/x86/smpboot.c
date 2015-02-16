@@ -879,7 +879,7 @@ int cpu_add(uint32_t apic_id, uint32_t acpi_id, uint32_t pxm)
     {
         nodeid_t node = setup_node(pxm);
 
-        if ( node == NUMA_NO_NODE )
+        if ( node == XEN_NUMA_NO_NODE )
         {
             dprintk(XENLOG_WARNING,
                     "Setup node failed for pxm %x\n", pxm);

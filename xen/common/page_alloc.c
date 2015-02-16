@@ -591,7 +591,7 @@ static struct page_info *alloc_heap_pages(
     /* Make sure there are enough bits in memflags for nodeID. */
     BUILD_BUG_ON((_MEMF_bits - _MEMF_node) < (8 * sizeof(nodeid_t)));
 
-    if ( node == NUMA_NO_NODE )
+    if ( node == XEN_NUMA_NO_NODE )
     {
         memflags &= ~MEMF_exact_node;
         if ( d != NULL )
@@ -1291,7 +1291,7 @@ static void __init smp_scrub_heap_pages(void *data)
     else
     {
         node = cpu_to_node(cpu);
-        if ( node == NUMA_NO_NODE )
+        if ( node == XEN_NUMA_NO_NODE )
             return;
         r = &region[node];
     }

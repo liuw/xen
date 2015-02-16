@@ -1354,7 +1354,7 @@ int memory_add(unsigned long spfn, unsigned long epfn, unsigned int pxm)
     if ( !mem_hotadd_check(spfn, epfn) )
         return -EINVAL;
 
-    if ( (node = setup_node(pxm)) == NUMA_NO_NODE )
+    if ( (node = setup_node(pxm)) == XEN_NUMA_NO_NODE )
         return -EINVAL;
 
     if ( !valid_numa_range(spfn << PAGE_SHIFT, epfn << PAGE_SHIFT, node) )

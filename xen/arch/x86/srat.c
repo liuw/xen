@@ -33,7 +33,7 @@ struct pxm2node {
 	nodeid_t node;
 };
 static struct pxm2node __read_mostly pxm2node[MAX_NUMNODES] =
-	{ [0 ... MAX_NUMNODES - 1] = {.node = NUMA_NO_NODE} };
+	{ [0 ... MAX_NUMNODES - 1] = {.node = XEN_NUMA_NO_NODE} };
 
 static unsigned node_to_pxm(nodeid_t n);
 
@@ -44,7 +44,7 @@ static nodeid_t memblk_nodeid[NR_NODE_MEMBLKS];
 static inline bool_t node_found(unsigned idx, unsigned pxm)
 {
 	return ((pxm2node[idx].pxm == pxm) &&
-		(pxm2node[idx].node != NUMA_NO_NODE));
+		(pxm2node[idx].node != XEN_NUMA_NO_NODE));
 }
 
 nodeid_t pxm_to_node(unsigned pxm)
@@ -58,7 +58,7 @@ nodeid_t pxm_to_node(unsigned pxm)
 		if (node_found(i, pxm))
 			return pxm2node[i].node;
 
-	return NUMA_NO_NODE;
+	return XEN_NUMA_NO_NODE;
 }
 
 __devinit nodeid_t setup_node(unsigned pxm)
@@ -67,21 +67,21 @@ __devinit nodeid_t setup_node(unsigned pxm)
 	unsigned idx;
 	static bool_t warned;
 
-	BUILD_BUG_ON(MAX_NUMNODES >= NUMA_NO_NODE);
+	BUILD_BUG_ON(MAX_NUMNODES >= XEN_NUMA_NO_NODE);
 
 	if (pxm < ARRAY_SIZE(pxm2node)) {
 		if (node_found(pxm, pxm))
 			return pxm2node[pxm].node;
 
 		/* Try to maintain indexing of pxm2node by pxm */
-		if (pxm2node[pxm].node == NUMA_NO_NODE) {
+		if (pxm2node[pxm].node == XEN_NUMA_NO_NODE) {
 			idx = pxm;
 			goto finish;
 		}
 	}
 
 	for (idx = 0; idx < ARRAY_SIZE(pxm2node); idx++)
-		if (pxm2node[idx].node == NUMA_NO_NODE)
+		if (pxm2node[idx].node == XEN_NUMA_NO_NODE)
 			goto finish;
 
 	if (!warned) {
@@ -89,7 +89,7 @@ __devinit nodeid_t setup_node(unsigned pxm)
 		warned = 1;
 	}
 
-	return NUMA_NO_NODE;
+	return XEN_NUMA_NO_NODE;
 
  finish:
 	node = first_unset_node(nodes_found);
@@ -152,9 +152,9 @@ static __init void bad_srat(void)
 	printk(KERN_ERR "SRAT: SRAT not used.\n");
 	acpi_numa = -1;
 	for (i = 0; i < MAX_LOCAL_APIC; i++)
-		apicid_to_node[i] = NUMA_NO_NODE;
+		apicid_to_node[i] = XEN_NUMA_NO_NODE;
 	for (i = 0; i < ARRAY_SIZE(pxm2node); i++)
-		pxm2node[i].node = NUMA_NO_NODE;
+		pxm2node[i].node = XEN_NUMA_NO_NODE;
 	mem_hotplug = 0;
 }
 
@@ -218,7 +218,7 @@ acpi_numa_x2apic_affinity_init(struct acpi_srat_x2apic_cpu_affinity *pa)
 		return;
 	pxm = pa->proximity_domain;
 	node = setup_node(pxm);
-	if (node == NUMA_NO_NODE) {
+	if (node == XEN_NUMA_NO_NODE) {
 		printk(KERN_ERR "SRAT: Too many proximity domains %x\n", pxm);
 		bad_srat();
 		return;
@@ -253,7 +253,7 @@ acpi_numa_processor_affinity_init(struct acpi_srat_cpu_affinity *pa)
 		pxm |= pa->proximity_domain_hi[2] << 24;
 	}
 	node = setup_node(pxm);
-	if (node == NUMA_NO_NODE) {
+	if (node == XEN_NUMA_NO_NODE) {
 		printk(KERN_ERR "SRAT: Too many proximity domains %x\n", pxm);
 		bad_srat();
 		return;
@@ -298,7 +298,7 @@ acpi_numa_memory_affinity_init(struct acpi_srat_mem_affinity *ma)
 	if (srat_rev < 2)
 		pxm &= 0xff;
 	node = setup_node(pxm);
-	if (node == NUMA_NO_NODE) {
+	if (node == XEN_NUMA_NO_NODE) {
 		printk(KERN_ERR "SRAT: Too many proximity domains.\n");
 		bad_srat();
 		return;
@@ -475,10 +475,10 @@ int __init acpi_scan_nodes(u64 start, u64 end)
 		setup_node_bootmem(i, nodes[i].start, nodes[i].end);
 	}
 	for (i = 0; i < nr_cpu_ids; i++) {
-		if (cpu_to_node[i] == NUMA_NO_NODE)
+		if (cpu_to_node[i] == XEN_NUMA_NO_NODE)
 			continue;
 		if (!node_isset(cpu_to_node[i], processor_nodes_parsed))
-			numa_set_node(i, NUMA_NO_NODE);
+			numa_set_node(i, XEN_NUMA_NO_NODE);
 	}
 	numa_init_array();
 	return 0;

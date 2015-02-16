@@ -173,7 +173,7 @@ int create_irq(nodeid_t node)
     {
         cpumask_t *mask = NULL;
 
-        if ( node != NUMA_NO_NODE )
+        if ( node != XEN_NUMA_NO_NODE )
         {
             mask = &node_to_cpumask(node);
             if (cpumask_empty(mask))
@@ -2000,7 +2000,7 @@ int map_domain_pirq(
             spin_unlock_irqrestore(&desc->lock, flags);
 
             info = NULL;
-            irq = create_irq(NUMA_NO_NODE);
+            irq = create_irq(XEN_NUMA_NO_NODE);
             ret = irq >= 0 ? prepare_domain_irq_pirq(d, irq, pirq + nr, &info)
                            : irq;
             if ( ret )

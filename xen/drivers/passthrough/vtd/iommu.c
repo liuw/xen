@@ -190,7 +190,7 @@ u64 alloc_pgtable_maddr(struct acpi_drhd_unit *drhd, unsigned long npages)
     struct acpi_rhsa_unit *rhsa;
     struct page_info *pg, *cur_pg;
     u64 *vaddr;
-    nodeid_t node = NUMA_NO_NODE;
+    nodeid_t node = XEN_NUMA_NO_NODE;
     unsigned int i;
 
     rhsa = drhd_to_rhsa(drhd);
@@ -198,7 +198,7 @@ u64 alloc_pgtable_maddr(struct acpi_drhd_unit *drhd, unsigned long npages)
         node =  pxm_to_node(rhsa->proximity_domain);
 
     pg = alloc_domheap_pages(NULL, get_order_from_pages(npages),
-                             (node == NUMA_NO_NODE) ? 0 : MEMF_node(node));
+                             (node == XEN_NUMA_NO_NODE) ? 0 : MEMF_node(node));
     if ( !pg )
         return 0;
 
@@ -1064,7 +1064,7 @@ static int __init iommu_set_interrupt(struct acpi_drhd_unit *drhd)
     struct irq_desc *desc;
 
     irq = create_irq(rhsa ? pxm_to_node(rhsa->proximity_domain)
-                          : NUMA_NO_NODE);
+                          : XEN_NUMA_NO_NODE);
     if ( irq <= 0 )
     {
         dprintk(XENLOG_ERR VTDPREFIX, "IOMMU: no irq available!\n");
@@ -1959,7 +1959,7 @@ static void adjust_irq_affinity(struct acpi_drhd_unit *drhd)
 {
     const struct acpi_rhsa_unit *rhsa = drhd_to_rhsa(drhd);
     unsigned int node = rhsa ? pxm_to_node(rhsa->proximity_domain)
-                             : NUMA_NO_NODE;
+                             : XEN_NUMA_NO_NODE;
     const cpumask_t *cpumask = &cpu_online_map;
 
     if ( node < MAX_NUMNODES && node_online(node) &&

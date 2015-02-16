@@ -146,7 +146,7 @@ int physdev_map_pirq(domid_t domid, int type, int *index, int *pirq_p,
         irq = *index;
         if ( irq == -1 )
     case MAP_PIRQ_TYPE_MULTI_MSI:
-            irq = create_irq(NUMA_NO_NODE);
+            irq = create_irq(XEN_NUMA_NO_NODE);
 
         if ( irq < nr_irqs_gsi || irq >= nr_irqs )
         {
