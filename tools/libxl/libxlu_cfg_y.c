@@ -452,8 +452,8 @@ static const yytype_int8 yyrhs[] =
 static const yytype_uint8 yyrline[] =
 {
        0,    47,    47,    48,    50,    51,    53,    54,    55,    57,
-      59,    60,    62,    63,    65,    66,    68,    69,    70,    72,
-      73,    75,    77
+      59,    60,    62,    65,    67,    68,    70,    71,    72,    74,
+      77,    79,    81
 };
 #endif
 
@@ -1515,69 +1515,73 @@ yyreduce:
 
 /* Line 1806 of yacc.c  */
 #line 62 "libxlu_cfg_y.y"
-    { (yyval.value)= xlu__cfg_string_mk(ctx,(yyvsp[(1) - (1)].string)); }
+    { (yyval.value)= xlu__cfg_string_mk(ctx,(yyvsp[(1) - (1)].string),
+							      (yylsp[(1) - (1)]).first_line,
+							      (yylsp[(1) - (1)]).first_column); }
     break;
 
   case 13:
 
 /* Line 1806 of yacc.c  */
-#line 63 "libxlu_cfg_y.y"
+#line 65 "libxlu_cfg_y.y"
     { (yyval.value)= (yyvsp[(3) - (4)].value); }
     break;
 
   case 14:
 
 /* Line 1806 of yacc.c  */
-#line 65 "libxlu_cfg_y.y"
+#line 67 "libxlu_cfg_y.y"
     { (yyval.string)= (yyvsp[(1) - (1)].string); }
     break;
 
   case 15:
 
 /* Line 1806 of yacc.c  */
-#line 66 "libxlu_cfg_y.y"
+#line 68 "libxlu_cfg_y.y"
     { (yyval.string)= (yyvsp[(1) - (1)].string); }
     break;
 
   case 16:
 
 /* Line 1806 of yacc.c  */
-#line 68 "libxlu_cfg_y.y"
-    { (yyval.value)= xlu__cfg_list_mk(ctx,NULL); }
+#line 70 "libxlu_cfg_y.y"
+    { (yyval.value)= xlu__cfg_list_mk(ctx,NULL,0,0); }
     break;
 
   case 17:
 
 /* Line 1806 of yacc.c  */
-#line 69 "libxlu_cfg_y.y"
+#line 71 "libxlu_cfg_y.y"
     { (yyval.value)= (yyvsp[(1) - (1)].value); }
     break;
 
   case 18:
 
 /* Line 1806 of yacc.c  */
-#line 70 "libxlu_cfg_y.y"
+#line 72 "libxlu_cfg_y.y"
     { (yyval.value)= (yyvsp[(1) - (3)].value); }
     break;
 
   case 19:
 
 /* Line 1806 of yacc.c  */
-#line 72 "libxlu_cfg_y.y"
-    { (yyval.value)= xlu__cfg_list_mk(ctx,(yyvsp[(1) - (2)].value)); }
+#line 74 "libxlu_cfg_y.y"
+    { (yyval.value)= xlu__cfg_list_mk(ctx,(yyvsp[(1) - (2)].value),
+							   (yylsp[(1) - (2)]).first_line,
+							   (yylsp[(1) - (2)]).first_column); }
     break;
 
   case 20:
 
 /* Line 1806 of yacc.c  */
-#line 73 "libxlu_cfg_y.y"
+#line 77 "libxlu_cfg_y.y"
     { xlu__cfg_list_append(ctx,(yyvsp[(1) - (5)].value),(yyvsp[(4) - (5)].value)); (yyval.value)= (yyvsp[(1) - (5)].value); }
     break;
 
 
 
 /* Line 1806 of yacc.c  */
-#line 1581 "libxlu_cfg_y.c"
+#line 1585 "libxlu_cfg_y.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
