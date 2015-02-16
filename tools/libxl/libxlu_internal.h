@@ -44,6 +44,7 @@ struct XLU_ConfigValue {
         char *string;
         XLU_ConfigList list;
     } u;
+    int line, column;
 };
 
 typedef struct XLU_ConfigSetting { /* transparent */
