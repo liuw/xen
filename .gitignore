@@ -170,6 +170,7 @@ tools/libxl/libxlu_cfg_y.output
 tools/libxl/*.pc
 tools/libxl/*.pc.in
 tools/libxl/xl
+tools/libxl/stubdompath.sh
 tools/libxl/testenum
 tools/libxl/testenum.c
 tools/libxl/tmp.*
