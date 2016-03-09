@@ -590,7 +590,6 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 SUBSYSTEMS
 docs
-stubdom
 tools
 xen
 subdirs
@@ -666,7 +665,6 @@ with_libexec_leaf_dir
 with_xen_dumpdir
 enable_xen
 enable_tools
-enable_stubdom
 enable_docs
 '
       ac_precious_vars='build_alias
@@ -674,7 +672,6 @@ host_alias
 target_alias'
 ac_subdirs_all='xen
 tools
-stubdom
 docs'
 
 # Initialize some variables set by options.
@@ -1290,7 +1287,6 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-xen           Disable build and install of xen
   --disable-tools         Disable build and install of tools
-  --enable-stubdom        Enable build and install of stubdom
   --disable-docs          Disable build and install of docs
 
 Optional Packages:
@@ -2005,21 +2001,6 @@ XEN_DUMP_DIR=$xen_dumpdir_path
 
 
 
-case "$host_cpu" in
-    i[3456]86|x86_64)
-        arch_enable_stubdom=y
-        ;;
-    *)
-        arch_enable_stubdom=n
-        ;;
-esac
-
-case "$host_os" in
-    freebsd*)
-        arch_enable_stubdom=n
-        ;;
-esac
-
 
 
 
@@ -2107,62 +2088,6 @@ if test -e "tools/configure"; then :
 
 if test "x$tools" = "xy" || test "x$tools" = "x" ; then
     subdirs="$subdirs tools"
-
-fi
-
-fi
-
-
-
-
-# Check whether --enable-stubdom was given.
-if test "${enable_stubdom+set}" = set; then :
-  enableval=$enable_stubdom;
-
-if test "x$enableval" = "xyes"; then :
-
-
-stubdom=y
-SUBSYSTEMS="$SUBSYSTEMS stubdom"
-
-
-else
-
-if test "x$enableval" = "xno"; then :
-
-
-stubdom=n
-
-
-fi
-
-fi
-
-
-else
-
-if test "x$arch_enable_stubdom" = "xy"; then :
-
-
-stubdom=y
-SUBSYSTEMS="$SUBSYSTEMS stubdom"
-
-
-else
-
-
-stubdom=n
-
-
-fi
-
-fi
-
-
-if test -e "stubdom/configure"; then :
-
-if test "x$stubdom" = "xy" || test "x$stubdom" = "x" ; then
-    subdirs="$subdirs stubdom"
 
 fi
 

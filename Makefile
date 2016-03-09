@@ -7,7 +7,7 @@
 all: dist
 
 -include config/Toplevel.mk
-SUBSYSTEMS?=xen tools stubdom docs
+SUBSYSTEMS?=xen tools docs
 TARGS_DIST=$(patsubst %, dist-%, $(SUBSYSTEMS))
 TARGS_INSTALL=$(patsubst %, install-%, $(SUBSYSTEMS))
 TARGS_BUILD=$(patsubst %, build-%, $(SUBSYSTEMS))
@@ -16,24 +16,6 @@ TARGS_DISTCLEAN=$(patsubst %, distclean-%, $(SUBSYSTEMS))
 
 export XEN_ROOT=$(CURDIR)
 include Config.mk
-
-.PHONY: mini-os-dir
-mini-os-dir:
-	if [ ! -d $(XEN_ROOT)/extras/mini-os ]; then \
-		GIT=$(GIT) $(XEN_ROOT)/scripts/git-checkout.sh \
-			$(MINIOS_UPSTREAM_URL) \
-			$(MINIOS_UPSTREAM_REVISION) \
-			$(XEN_ROOT)/extras/mini-os ; \
-	fi
-
-.PHONY: mini-os-dir-force-update
-mini-os-dir-force-update: mini-os-dir
-	set -ex; \
-	if [ "$(MINIOS_UPSTREAM_REVISION)" ]; then \
-		cd extras/mini-os-remote; \
-		$(GIT) fetch origin; \
-		$(GIT) reset --hard $(MINIOS_UPSTREAM_REVISION); \
-	fi
 
 export XEN_TARGET_ARCH
 export DESTDIR
@@ -52,13 +34,6 @@ build-xen:
 .PHONY: build-tools
 build-tools:
 	$(MAKE) -C tools build
-
-.PHONY: build-stubdom
-build-stubdom: mini-os-dir
-	$(MAKE) -C stubdom build
-ifeq (x86_64,$(XEN_TARGET_ARCH))
-	XEN_TARGET_ARCH=x86_32 $(MAKE) -C stubdom pv-grub
-endif
 
 .PHONY: build-docs
 build-docs:
@@ -86,10 +61,9 @@ dist-%: install-%
 	@: # do nothing
 
 # Legacy dist targets
-.PHONY: xen tools stubdom docs
+.PHONY: xen tools docs
 xen: dist-xen
 tools: dist-tools
-stubdom: dist-stubdom
 docs: dist-docs
 
 .PHONY: install-xen
@@ -99,13 +73,6 @@ install-xen:
 .PHONY: install-tools
 install-tools:
 	$(MAKE) -C tools install
-
-.PHONY: install-stubdom
-install-stubdom: install-tools mini-os-dir
-	$(MAKE) -C stubdom install
-ifeq (x86_64,$(XEN_TARGET_ARCH))
-	XEN_TARGET_ARCH=x86_32 $(MAKE) -C stubdom install-grub
-endif
 
 .PHONY: tools/firmware/seabios-dir-force-update
 tools/firmware/seabios-dir-force-update:
@@ -177,13 +144,6 @@ clean-xen:
 clean-tools:
 	$(MAKE) -C tools clean
 
-.PHONY: clean-stubdom
-clean-stubdom:
-	$(MAKE) -C stubdom crossclean
-ifeq (x86_64,$(XEN_TARGET_ARCH))
-	XEN_TARGET_ARCH=x86_32 $(MAKE) -C stubdom crossclean
-endif
-
 .PHONY: clean-docs
 clean-docs:
 	$(MAKE) -C docs clean
@@ -203,14 +163,6 @@ distclean-xen:
 distclean-tools:
 	$(MAKE) -C tools distclean
 
-.PHONY: distclean-stubdom
-distclean-stubdom:
-	$(MAKE) -C stubdom distclean
-ifeq (x86_64,$(XEN_TARGET_ARCH))
-	XEN_TARGET_ARCH=x86_32 $(MAKE) -C stubdom distclean
-endif
-	rm -rf extras/mini-os extras/mini-os-remote
-
 .PHONY: distclean-docs
 distclean-docs:
 	$(MAKE) -C docs distclean
@@ -225,7 +177,6 @@ help:
 	@echo '  install               - build and install everything'
 	@echo '  install-xen           - build and install the Xen hypervisor'
 	@echo '  install-tools         - build and install the control tools'
-	@echo '  install-stubdom       - build and install the stubdomain images'
 	@echo '  install-docs          - build and install user documentation'
 	@echo ''
 	@echo 'Local dist targets:'
@@ -233,14 +184,12 @@ help:
 	@echo '  world                 - clean everything then make dist'
 	@echo '  dist-xen              - build Xen hypervisor and install into local dist'
 	@echo '  dist-tools            - build the tools and install into local dist'
-	@echo '  dist-stubdom          - build the stubdomain images and install into local dist'
 	@echo '  dist-docs             - build user documentation and install into local dist'
 	@echo ''
 	@echo 'Building targets:'
 	@echo '  build                 - build everything'
 	@echo '  build-xen             - build Xen hypervisor'
 	@echo '  build-tools           - build the tools'
-	@echo '  build-stubdom         - build the stubdomain images'
 	@echo '  build-docs            - build user documentation'
 	@echo ''
 	@echo 'Cleaning targets:'

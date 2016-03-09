@@ -4,9 +4,6 @@ autoconf -f
   autoconf -f
   autoheader
 )
-( cd stubdom
-  autoconf -f
-)
 ( cd docs
   autoconf -f
 )
