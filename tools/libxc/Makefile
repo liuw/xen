@@ -68,8 +68,8 @@ else
 GUEST_SRCS-y += xc_nomigrate.c
 endif
 
-vpath %.c ../../xen/common/libelf
-CFLAGS += -I../../xen/common/libelf
+vpath %.c $(XEN_ROOT)/xen/common/libelf
+CFLAGS += -I$(XEN_ROOT)/xen/common/libelf
 
 ELF_SRCS-y += libelf-tools.c libelf-loader.c
 ELF_SRCS-y += libelf-dominfo.c
