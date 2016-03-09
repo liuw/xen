@@ -25,6 +25,11 @@ ifeq ($(CONFIG_REMUS_NETBUF),y)
 LIBXL_LIBS += $(LIBNL3_LIBS)
 endif
 
+# Script used to launch stubdom
+STUBDOMPATH="stubdompath.sh"
+genpath-target = $(call buildmakevars2file,$(STUBDOMPATH))
+$(eval $(genpath-target))
+
 CFLAGS_LIBXL += $(CFLAGS_libxentoollog)
 CFLAGS_LIBXL += $(CFLAGS_libxenevtchn)
 CFLAGS_LIBXL += $(CFLAGS_libxenctrl)
@@ -223,7 +228,7 @@ _libxl_type%.h _libxl_type%_json.h _libxl_type%_private.h _libxl_type%.c: libxl_
 	$(call move-if-changed,__libxl_type$*_json.h,_libxl_type$*_json.h)
 	$(call move-if-changed,__libxl_type$*.c,_libxl_type$*.c)
 
-libxenlight.so: libxenlight.so.$(MAJOR)
+libxenlight.so: libxenlight.so.$(MAJOR) $(STUBDOMPATH)
 	$(SYMLINK_SHLIB) $< $@
 
 libxenlight.so.$(MAJOR): libxenlight.so.$(MAJOR).$(MINOR)
@@ -268,6 +273,7 @@ $(PKG_CONFIG): % : %.in Makefile
 
 .PHONY: install
 install: all
+	$(INSTALL_DATA) $(STUBDOMPATH) $(DESTDIR)$(LIBEXEC_BIN)
 	$(INSTALL_DIR) $(DESTDIR)$(sbindir)
 	$(INSTALL_DIR) $(DESTDIR)$(libdir)
 	$(INSTALL_DIR) $(DESTDIR)$(includedir)
@@ -296,6 +302,7 @@ clean:
 	$(RM) -f testidl.c.new testidl.c *.api-ok
 	$(RM) -f xenlight.pc
 	$(RM) -f xlutil.pc
+	$(RM) -f $(STUBDOMPATH)
 
 distclean: clean
 	$(RM) -f xenlight.pc.in xlutil.pc.in
