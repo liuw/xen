@@ -1,4 +1,4 @@
-XEN_ROOT = $(CURDIR)/../../..
+XEN_ROOT  ?=  $(CURDIR)/../../..
 
 LIB_SRCS-y = ext2fs-lib.c
 

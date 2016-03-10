@@ -2,7 +2,7 @@
 # tools/libxl/Makefile
 #
 
-XEN_ROOT = $(CURDIR)/../..
+XEN_ROOT  ?=  $(CURDIR)/../..
 include $(XEN_ROOT)/tools/Rules.mk
 
 MAJOR = 4.6

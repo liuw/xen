@@ -1,4 +1,4 @@
-XEN_ROOT=$(CURDIR)/../..
+XEN_ROOT ?= $(CURDIR)/../..
 include $(XEN_ROOT)/tools/Rules.mk
 
 # xenpaging.c and file_ops.c incorrectly use libxc internals

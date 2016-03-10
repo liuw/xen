@@ -1,5 +1,5 @@
 TOPLEVEL=$(CURDIR)/../..
-XEN_ROOT=$(TOPLEVEL)/../..
+XEN_ROOT ?= $(TOPLEVEL)/../..
 include $(TOPLEVEL)/common.make
 
 # ignore unused generated functions and allow mixed declarations and code

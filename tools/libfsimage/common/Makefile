@@ -1,4 +1,4 @@
-XEN_ROOT = $(CURDIR)/../../..
+XEN_ROOT  ?=  $(CURDIR)/../../..
 include $(XEN_ROOT)/tools/libfsimage/Rules.mk
 
 MAJOR = 1.0

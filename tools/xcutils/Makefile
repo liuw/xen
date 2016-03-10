@@ -8,7 +8,7 @@
 # Copyright (C) 2005 by Christian Limpach
 #
 
-XEN_ROOT	= $(CURDIR)/../..
+XEN_ROOT	 ?=  $(CURDIR)/../..
 include $(XEN_ROOT)/tools/Rules.mk
 
 PROGRAMS = readnotes lsevtchn

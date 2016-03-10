@@ -1,5 +1,5 @@
 TOPLEVEL=$(CURDIR)/../..
-XEN_ROOT=$(TOPLEVEL)/../..
+XEN_ROOT ?= $(TOPLEVEL)/../..
 include $(TOPLEVEL)/common.make
 
 CFLAGS += -I../mmap $(CFLAGS_libxenctrl) $(CFLAGS_libxenguest)

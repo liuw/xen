@@ -1,5 +1,5 @@
 
-XEN_ROOT = $(CURDIR)/../..
+XEN_ROOT  ?=  $(CURDIR)/../..
 include $(XEN_ROOT)/tools/Rules.mk
 
 PY_CFLAGS = $(CFLAGS) $(PY_NOOPT_CFLAGS) $(APPEND_LDFLAGS)

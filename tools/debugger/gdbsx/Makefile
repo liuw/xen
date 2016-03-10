@@ -1,4 +1,4 @@
-XEN_ROOT = $(CURDIR)/../../..
+XEN_ROOT  ?=  $(CURDIR)/../../..
 include ./Rules.mk
 
 .PHONY: all
