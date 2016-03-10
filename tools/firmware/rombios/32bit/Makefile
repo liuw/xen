@@ -1,4 +1,4 @@
-XEN_ROOT = $(CURDIR)/../../../..
+XEN_ROOT  ?=  $(CURDIR)/../../../..
 include $(XEN_ROOT)/tools/firmware/Rules.mk
 
 TARGET = 32bitbios_flat.h

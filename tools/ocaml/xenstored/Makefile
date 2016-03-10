@@ -1,4 +1,4 @@
-XEN_ROOT = $(CURDIR)/../../..
+XEN_ROOT  ?=  $(CURDIR)/../../..
 OCAML_TOPLEVEL = $(CURDIR)/..
 include $(OCAML_TOPLEVEL)/common.make
 

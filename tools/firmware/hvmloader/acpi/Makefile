@@ -14,7 +14,7 @@
 # this program; If not, see <http://www.gnu.org/licenses/>.
 #
 
-XEN_ROOT = $(CURDIR)/../../../..
+XEN_ROOT  ?=  $(CURDIR)/../../../..
 include $(XEN_ROOT)/tools/firmware/Rules.mk
 
 C_SRC = build.c dsdt_anycpu.c dsdt_15cpu.c static_tables.c dsdt_anycpu_qemu_xen.c

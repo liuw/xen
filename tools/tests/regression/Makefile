@@ -5,7 +5,7 @@
 # To run this, at least the basic build / development environment must
 # be installed (gcc, ...)
 #
-XEN_ROOT=$(PWD)/../../..
+XEN_ROOT ?= $(PWD)/../../..
 REG_TEST_DIR=$(PWD)
 
 PYTHON_VERSIONS=python-2.3 python-2.4 python-2.5 python-2.6 python-3.1

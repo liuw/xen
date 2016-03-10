@@ -17,7 +17,7 @@
 # this program; If not, see <http://www.gnu.org/licenses/>.
 #
 
-XEN_ROOT = $(CURDIR)/../../..
+XEN_ROOT  ?=  $(CURDIR)/../../..
 include $(XEN_ROOT)/tools/firmware/Rules.mk
 
 SUBDIRS := acpi

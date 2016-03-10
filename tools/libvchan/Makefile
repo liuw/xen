@@ -2,7 +2,7 @@
 # tools/libvchan/Makefile
 #
 
-XEN_ROOT = $(CURDIR)/../..
+XEN_ROOT  ?=  $(CURDIR)/../..
 include $(XEN_ROOT)/tools/Rules.mk
 
 LIBVCHAN_OBJS = init.o io.o
