@@ -11,7 +11,7 @@ Compiling Xen from source
 Overview
 ========
 
-The xen source contains four subsystems: xen, tools, stubdom and docs.
+The xen source three subsystems: xen, tools and docs.
 All but xen have to be prepared for build with a configure script in the
 toplevel directory. configure recognizes certain arguments and
 environment variables which are used to adjust various aspects of the
@@ -23,14 +23,12 @@ Options recognized by configure
 ===============================
 
 The configure script in the toplevel directory will recognize these
-options. It will pass them to the configure scripts in the tools,
-stubdom, and docs directory.
+options. It will pass them to the configure scripts in the tools
+and docs directory.
 
 Individual subsystems can be selected by one of the following options.
-Please note that stubdom requires tools.
   --disable-xen
   --disable-tools
-  --enable-stubdom
   --disable-docs
 
 The well known GNU configure options to specify the target directories.
@@ -148,17 +146,6 @@ The old backend drivers are disabled because qdisk is now the default.
 This option can be used to build them anyway.
   --enable-blktap2
 
-Build various stubom components, some are only example code. Its usually
-enough to specify just --enable-stubdom and leave these options alone.
-  --enable-ioemu-stubdom
-  --enable-c-stubdom
-  --enable-caml-stubdom
-  --disable-pv-grub
-  --disable-xenstore-stubdom
-  --enable-vtpm-stubdom
-  --enable-vtpmmgr-stubdom
-  --disable-extfiles
-
 Per default some parts of the tools code will print additional runtime
 debug. This option can be used to disable such code paths.
   --disable-debug
@@ -240,9 +227,7 @@ This variable can be used to point to a different git binary to be used.
 GIT=
 
 During tools build external repos will be cloned into the source tree.
-During stubdom build external packages will be downloaded into the
-source tree. These variables can be used to point to a different
-locations.
+These variables can be used to point to a different locations.
 XEN_EXTFILES_URL=
 OVMF_UPSTREAM_URL=
 QEMU_UPSTREAM_URL=
