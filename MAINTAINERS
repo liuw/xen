@@ -301,6 +301,7 @@ T:	git git://xenbits.xen.org/seabios.git
 STUB DOMAINS
 M:	Stefano Stabellini <stefano.stabellini@eu.citrix.com>
 M:	Samuel Thibault <samuel.thibault@ens-lyon.org>
+M:	Wei Liu <wei.liu2@citrix.com>
 S:	Supported
 T:	git git://xenbits.xen.org/stubdom.git
 
