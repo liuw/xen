@@ -29,7 +29,6 @@ cscope.po.out
 .config
 
 dist
-stubdom/*.tar.gz
 
 autom4te.cache/
 config.log
@@ -48,39 +47,6 @@ docs/pdf/
 docs/txt/
 extras/mini-os*
 install/*
-stubdom/autom4te.cache/
-stubdom/binutils-*
-stubdom/config.cache
-stubdom/config.log
-stubdom/config.status
-stubdom/cross-root-*
-stubdom/gcc-*
-stubdom/gmp-*
-stubdom/grub-*
-stubdom/include
-stubdom/ioemu
-stubdom/ioemu/
-stubdom/libs-*
-stubdom/libxc-*
-stubdom/libxencall-*
-stubdom/libxenevtchn-*
-stubdom/libxenforeignmemory-*
-stubdom/libxengnttab-*
-stubdom/libxentoollog-*
-stubdom/lwip-*
-stubdom/lwip/
-stubdom/mini-os-*
-stubdom/mk-headers-*
-stubdom/newlib-1.*
-stubdom/newlib-x86*
-stubdom/ocaml-*
-stubdom/pciutils-*
-stubdom/polarssl-*
-stubdom/stubdompath.sh
-stubdom/tpm_emulator-*
-stubdom/vtpm/vtpm_manager.h
-stubdom/xenstore
-stubdom/zlib-*
 tools/*/build/lib*/*.py
 tools/autom4te.cache/
 tools/config.h
@@ -88,7 +54,6 @@ tools/config.log
 tools/config.status
 tools/config.cache
 config/Tools.mk
-config/Stubdom.mk
 config/Docs.mk
 tools/libs/toollog/headers.chk
 tools/libs/evtchn/headers.chk
