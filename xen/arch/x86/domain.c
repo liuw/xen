@@ -536,6 +536,16 @@ static bool emulation_flags_ok(const struct domain *d, uint32_t emflags)
     return true;
 }
 
+static void pv_domain_destroy(struct domain *d)
+{
+    destroy_perdomain_mapping(d, GDT_LDT_VIRT_START,
+                              GDT_LDT_MBYTES << (20 - PAGE_SHIFT));
+    xfree(d->arch.pv_domain.cpuidmasks);
+    d->arch.pv_domain.cpuidmasks = NULL;
+    free_xenheap_page(d->arch.pv_domain.gdt_ldt_l1tab);
+    d->arch.pv_domain.gdt_ldt_l1tab = NULL;
+}
+
 int arch_domain_create(struct domain *d, unsigned int domcr_flags,
                        struct xen_arch_domainconfig *config)
 {
@@ -712,10 +722,8 @@ int arch_domain_create(struct domain *d, unsigned int domcr_flags,
         paging_final_teardown(d);
     free_perdomain_mappings(d);
     if ( is_pv_domain(d) )
-    {
-        xfree(d->arch.pv_domain.cpuidmasks);
-        free_xenheap_page(d->arch.pv_domain.gdt_ldt_l1tab);
-    }
+        pv_domain_destroy(d);
+
     return rc;
 }
 
@@ -735,10 +743,7 @@ void arch_domain_destroy(struct domain *d)
 
     free_perdomain_mappings(d);
     if ( is_pv_domain(d) )
-    {
-        free_xenheap_page(d->arch.pv_domain.gdt_ldt_l1tab);
-        xfree(d->arch.pv_domain.cpuidmasks);
-    }
+        pv_domain_destroy(d);
 
     free_xenheap_page(d->shared_info);
     cleanup_domain_irq_mapping(d);
