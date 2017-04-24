@@ -655,6 +655,9 @@ static inline void pv_inject_page_fault(int errcode, unsigned long cr2)
     pv_inject_event(&event);
 }
 
+void paravirt_ctxt_switch_from(struct vcpu *v);
+void paravirt_ctxt_switch_to(struct vcpu *v);
+
 #endif /* __ASM_DOMAIN_H__ */
 
 /*
