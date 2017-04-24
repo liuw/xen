@@ -387,6 +387,18 @@ int switch_compat(struct domain *d)
     return rc;
 }
 
+static int pv_create_gdt_ldt_l1tab(struct domain *d, struct vcpu *v)
+{
+    return create_perdomain_mapping(d, GDT_VIRT_START(v),
+                                    1 << GDT_LDT_VCPU_SHIFT,
+                                    d->arch.pv_domain.gdt_ldt_l1tab, NULL);
+}
+
+static void pv_destroy_gdt_ldt_l1tab(struct domain *d, struct vcpu *v)
+{
+    destroy_perdomain_mapping(d, GDT_VIRT_START(v), 1 << GDT_LDT_VCPU_SHIFT);
+}
+
 int vcpu_initialise(struct vcpu *v)
 {
     struct domain *d = v->domain;
@@ -423,9 +435,7 @@ int vcpu_initialise(struct vcpu *v)
 
     if ( !is_idle_domain(d) )
     {
-        rc = create_perdomain_mapping(d, GDT_VIRT_START(v),
-                                      1 << GDT_LDT_VCPU_SHIFT,
-                                      d->arch.pv_domain.gdt_ldt_l1tab, NULL);
+        rc = pv_create_gdt_ldt_l1tab(d, v);
         if ( rc )
             goto done;
 
@@ -435,6 +445,7 @@ int vcpu_initialise(struct vcpu *v)
                                                   NR_VECTORS);
         if ( !v->arch.pv_vcpu.trap_ctxt )
         {
+            pv_destroy_gdt_ldt_l1tab(d, v);
             rc = -ENOMEM;
             goto done;
         }
@@ -464,7 +475,10 @@ int vcpu_initialise(struct vcpu *v)
         vcpu_destroy_fpu(v);
 
         if ( is_pv_domain(d) )
+        {
+            pv_destroy_gdt_ldt_l1tab(d, v);
             xfree(v->arch.pv_vcpu.trap_ctxt);
+        }
     }
     else if ( !is_idle_domain(v->domain) )
         vpmu_initialise(v);
@@ -491,7 +505,10 @@ void vcpu_destroy(struct vcpu *v)
     if ( is_hvm_vcpu(v) )
         hvm_vcpu_destroy(v);
     else
+    {
+        pv_destroy_gdt_ldt_l1tab(v->domain, v);
         xfree(v->arch.pv_vcpu.trap_ctxt);
+    }
 }
 
 static bool emulation_flags_ok(const struct domain *d, uint32_t emflags)
