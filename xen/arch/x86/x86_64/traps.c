@@ -374,15 +374,12 @@ DEFINE_PER_CPU(struct stubs, stubs);
 void lstar_enter(void);
 void cstar_enter(void);
 
-void subarch_percpu_traps_init(void)
+static void pv_percpu_traps_init(void)
 {
     unsigned long stack_bottom = get_stack_bottom();
     unsigned long stub_va = this_cpu(stubs.addr);
     unsigned char *stub_page;
     unsigned int offset;
-
-    /* IST_MAX IST pages + 1 syscall page + 1 guard page + primary stack. */
-    BUILD_BUG_ON((IST_MAX + 2) * PAGE_SIZE + PRIMARY_STACK_SIZE > STACK_SIZE);
 
     stub_page = map_domain_page(_mfn(this_cpu(stubs.mfn)));
 
@@ -420,6 +417,14 @@ void subarch_percpu_traps_init(void)
     /* Common SYSCALL parameters. */
     wrmsrl(MSR_STAR, XEN_MSR_STAR);
     wrmsrl(MSR_SYSCALL_MASK, XEN_SYSCALL_MASK);
+}
+
+void subarch_percpu_traps_init(void)
+{
+    /* IST_MAX IST pages + 1 syscall page + 1 guard page + primary stack. */
+    BUILD_BUG_ON((IST_MAX + 2) * PAGE_SIZE + PRIMARY_STACK_SIZE > STACK_SIZE);
+
+    pv_percpu_traps_init();
 }
 
 void init_int80_direct_trap(struct vcpu *v)
