@@ -30,6 +30,8 @@ void emulate_gate_op(struct cpu_user_regs *regs);
 int emulate_forced_invalid_op(struct cpu_user_regs *regs);
 int emulate_invalid_rdtscp(struct cpu_user_regs *regs);
 
+void pv_percpu_traps_init(void);
+
 #else  /* !CONFIG_PV */
 
 #include <xen/errno.h>
@@ -38,6 +40,8 @@ int emulate_privileged_op(struct cpu_user_regs *regs) { return -EOPNOTSUPP; }
 void emulate_gate_op(struct cpu_user_regs *regs) {}
 int emulate_forced_invalid_op(struct cpu_user_regs *regs) { return -EOPNOTSUPP; }
 int emulate_invalid_rdtscp(struct cpu_user_regs *regs) { return -EOPNOTSUPP; }
+
+void pv_percpu_traps_init(void) {}
 
 #endif	/* CONFIG_PV */
 

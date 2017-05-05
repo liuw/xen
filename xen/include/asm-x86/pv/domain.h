@@ -29,6 +29,8 @@ void pv_domain_destroy(struct domain *d);
 int pv_domain_initialise(struct domain *d, unsigned int domcr_flags,
                          struct xen_arch_domainconfig *config);
 
+void hypercall_page_initialise_ring3_kernel(void *hypercall_page);
+
 #else  /* !CONFIG_PV */
 
 #include <xen/errno.h>
@@ -42,6 +44,9 @@ static inline int pv_domain_initialise(struct domain *d,
 {
     return -EOPNOTSUPP;
 }
+
+void hypercall_page_initialise_ring3_kernel(void *hypercall_page) {}
+
 #endif	/* CONFIG_PV */
 
 void paravirt_ctxt_switch_from(struct vcpu *v);
