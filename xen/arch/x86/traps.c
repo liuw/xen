@@ -1905,53 +1905,6 @@ void __init trap_init(void)
     open_softirq(PCI_SERR_SOFTIRQ, pci_serr_softirq);
 }
 
-int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
-{
-    struct vcpu *v;
-    struct softirq_trap *st = &per_cpu(softirq_trap, smp_processor_id());
-
-    BUG_ON(d == NULL);
-    BUG_ON(vcpuid >= d->max_vcpus);
-    v = d->vcpu[vcpuid];
-
-    switch (trap_nr) {
-    case TRAP_nmi:
-        if ( cmpxchgptr(&st->vcpu, NULL, v) )
-            return -EBUSY;
-        if ( !test_and_set_bool(v->nmi_pending) ) {
-               st->domain = d;
-               st->processor = v->processor;
-
-               /* not safe to wake up a vcpu here */
-               raise_softirq(NMI_MCE_SOFTIRQ);
-               return 0;
-        }
-        st->vcpu = NULL;
-        break;
-
-    case TRAP_machine_check:
-        if ( cmpxchgptr(&st->vcpu, NULL, v) )
-            return -EBUSY;
-
-        /* We are called by the machine check (exception or polling) handlers
-         * on the physical CPU that reported a machine check error. */
-
-        if ( !test_and_set_bool(v->mce_pending) ) {
-                st->domain = d;
-                st->processor = v->processor;
-
-                /* not safe to wake up a vcpu here */
-                raise_softirq(NMI_MCE_SOFTIRQ);
-                return 0;
-        }
-        st->vcpu = NULL;
-        break;
-    }
-
-    /* delivery failed */
-    return -EIO;
-}
-
 void activate_debugregs(const struct vcpu *curr)
 {
     ASSERT(curr == current);
