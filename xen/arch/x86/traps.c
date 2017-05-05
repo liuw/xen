@@ -1474,25 +1474,6 @@ void __init do_early_page_fault(struct cpu_user_regs *regs)
     }
 }
 
-long do_fpu_taskswitch(int set)
-{
-    struct vcpu *v = current;
-
-    if ( set )
-    {
-        v->arch.pv_vcpu.ctrlreg[0] |= X86_CR0_TS;
-        stts();
-    }
-    else
-    {
-        v->arch.pv_vcpu.ctrlreg[0] &= ~X86_CR0_TS;
-        if ( v->fpu_dirtied )
-            clts();
-    }
-
-    return 0;
-}
-
 void do_general_protection(struct cpu_user_regs *regs)
 {
     struct vcpu *v = current;
@@ -2111,56 +2092,6 @@ int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
     return -EIO;
 }
 
-
-long do_set_trap_table(XEN_GUEST_HANDLE_PARAM(const_trap_info_t) traps)
-{
-    struct trap_info cur;
-    struct vcpu *curr = current;
-    struct trap_info *dst = curr->arch.pv_vcpu.trap_ctxt;
-    long rc = 0;
-
-    /* If no table is presented then clear the entire virtual IDT. */
-    if ( guest_handle_is_null(traps) )
-    {
-        memset(dst, 0, NR_VECTORS * sizeof(*dst));
-        init_int80_direct_trap(curr);
-        return 0;
-    }
-
-    for ( ; ; )
-    {
-        if ( copy_from_guest(&cur, traps, 1) )
-        {
-            rc = -EFAULT;
-            break;
-        }
-
-        if ( cur.address == 0 )
-            break;
-
-        if ( !is_canonical_address(cur.address) )
-            return -EINVAL;
-
-        fixup_guest_code_selector(curr->domain, cur.cs);
-
-        memcpy(&dst[cur.vector], &cur, sizeof(cur));
-
-        if ( cur.vector == 0x80 )
-            init_int80_direct_trap(curr);
-
-        guest_handle_add_offset(traps, 1);
-
-        if ( hypercall_preempt_check() )
-        {
-            rc = hypercall_create_continuation(
-                __HYPERVISOR_set_trap_table, "h", traps);
-            break;
-        }
-    }
-
-    return rc;
-}
-
 void activate_debugregs(const struct vcpu *curr)
 {
     ASSERT(curr == current);
@@ -2282,31 +2213,6 @@ long set_debugreg(struct vcpu *v, unsigned int reg, unsigned long value)
 
     v->arch.debugreg[reg] = value;
     return 0;
-}
-
-long do_set_debugreg(int reg, unsigned long value)
-{
-    return set_debugreg(current, reg, value);
-}
-
-unsigned long do_get_debugreg(int reg)
-{
-    struct vcpu *curr = current;
-
-    switch ( reg )
-    {
-    case 0 ... 3:
-    case 6:
-        return curr->arch.debugreg[reg];
-    case 7:
-        return (curr->arch.debugreg[7] |
-                curr->arch.debugreg[5]);
-    case 4 ... 5:
-        return ((curr->arch.pv_vcpu.ctrlreg[4] & X86_CR4_DE) ?
-                curr->arch.debugreg[reg + 2] : 0);
-    }
-
-    return -EINVAL;
 }
 
 void asm_domain_crash_synchronous(unsigned long addr)
