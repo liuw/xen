@@ -655,6 +655,18 @@ static inline void pv_inject_page_fault(int errcode, unsigned long cr2)
     pv_inject_event(&event);
 }
 
+static inline void pv_inject_trap(unsigned int trapnr,
+                                  const struct cpu_user_regs *regs)
+{
+    const struct x86_event event = {
+        .vector = trapnr,
+        .error_code = (((trapnr < 32) && (TRAP_HAVE_EC & (1u << trapnr)))
+                       ? regs->error_code : X86_EVENT_NO_EC),
+    };
+
+    pv_inject_event(&event);
+}
+
 #endif /* __ASM_DOMAIN_H__ */
 
 /*
