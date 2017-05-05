@@ -1478,7 +1478,7 @@ void do_general_protection(struct cpu_user_regs *regs)
     panic("GENERAL PROTECTION FAULT\n[error_code=%04x]", regs->error_code);
 }
 
-static DEFINE_PER_CPU(struct softirq_trap, softirq_trap);
+DEFINE_PER_CPU(struct softirq_trap, softirq_trap);
 
 static void nmi_mce_softirq(void)
 {
