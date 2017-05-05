@@ -260,8 +260,8 @@ long unregister_guest_nmi_callback(void)
     return 0;
 }
 
-int guest_has_trap_callback(struct domain *d, uint16_t vcpuid,
-                            unsigned int trap_nr)
+bool guest_has_trap_callback(struct domain *d, uint16_t vcpuid,
+                             unsigned int trap_nr)
 {
     struct vcpu *v;
     struct trap_info *t;
