@@ -30,6 +30,7 @@ int pv_domain_initialise(struct domain *d, unsigned int domcr_flags,
                          struct xen_arch_domainconfig *config);
 
 void hypercall_page_initialise_ring3_kernel(void *hypercall_page);
+void hypercall_page_initialise_ring1_kernel(void *hypercall_page);
 
 #else  /* !CONFIG_PV */
 
@@ -46,6 +47,7 @@ static inline int pv_domain_initialise(struct domain *d,
 }
 
 void hypercall_page_initialise_ring3_kernel(void *hypercall_page) {}
+void hypercall_page_initialise_ring1_kernel(void *hypercall_page) {}
 
 #endif	/* CONFIG_PV */
 

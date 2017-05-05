@@ -264,8 +264,6 @@ void subarch_percpu_traps_init(void)
     pv_percpu_traps_init();
 }
 
-#include "compat/traps.c"
-
 void hypercall_page_initialise(struct domain *d, void *hypercall_page)
 {
     memset(hypercall_page, 0xCC, PAGE_SIZE);
