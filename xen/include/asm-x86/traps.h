@@ -24,6 +24,7 @@ struct softirq_trap {
 	struct vcpu *vcpu;	/* vcpu to inject trap */
 	int processor;		/* physical cpu to inject trap */
 };
+DECLARE_PER_CPU(struct softirq_trap, softirq_trap);
 
 struct cpu_user_regs;
 
