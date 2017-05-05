@@ -33,10 +33,10 @@ void async_exception_cleanup(struct vcpu *);
 /**
  * guest_has_trap_callback
  *
- * returns true (non-zero) if guest registered a trap handler
+ * returns true if guest registered a trap handler
  */
-extern int guest_has_trap_callback(struct domain *d, uint16_t vcpuid,
-				unsigned int trap_nr);
+extern bool guest_has_trap_callback(struct domain *d, uint16_t vcpuid,
+                                    unsigned int trap_nr);
 
 /**
  * send_guest_trap
