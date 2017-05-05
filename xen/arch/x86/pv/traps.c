@@ -294,12 +294,12 @@ int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
             return -EBUSY;
         if ( !test_and_set_bool(v->nmi_pending) )
         {
-               st->domain = d;
-               st->processor = v->processor;
+            st->domain = d;
+            st->processor = v->processor;
 
-               /* not safe to wake up a vcpu here */
-               raise_softirq(NMI_MCE_SOFTIRQ);
-               return 0;
+            /* not safe to wake up a vcpu here */
+            raise_softirq(NMI_MCE_SOFTIRQ);
+            return 0;
         }
         st->vcpu = NULL;
         break;
@@ -309,16 +309,17 @@ int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
             return -EBUSY;
 
         /* We are called by the machine check (exception or polling) handlers
-         * on the physical CPU that reported a machine check error. */
+         * on the physical CPU that reported a machine check error.
+         */
 
         if ( !test_and_set_bool(v->mce_pending) )
         {
-                st->domain = d;
-                st->processor = v->processor;
+            st->domain = d;
+            st->processor = v->processor;
 
-                /* not safe to wake up a vcpu here */
-                raise_softirq(NMI_MCE_SOFTIRQ);
-                return 0;
+            /* not safe to wake up a vcpu here */
+            raise_softirq(NMI_MCE_SOFTIRQ);
+            return 0;
         }
         st->vcpu = NULL;
         break;
@@ -772,7 +773,7 @@ unsigned int compat_iret(void)
 
     /* Restore CS and EIP. */
     if ( unlikely(__get_user(regs->eip, (u32 *)regs->rsp + 1)) ||
-        unlikely(__get_user(regs->cs, (u32 *)regs->rsp + 2)) )
+         unlikely(__get_user(regs->cs, (u32 *)regs->rsp + 2)) )
     {
         domain_crash(v->domain);
         return 0;
