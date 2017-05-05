@@ -138,7 +138,7 @@ static int read_descriptor(unsigned int sel,
                            unsigned long *base,
                            unsigned long *limit,
                            unsigned int *ar,
-                           bool_t insn_fetch)
+                           bool insn_fetch)
 {
     struct desc_struct desc;
 
@@ -274,7 +274,7 @@ static int priv_op_read_segment(enum x86_segment seg,
 }
 
 /* Perform IOPL check between the vcpu's shadowed IOPL, and the assumed cpl. */
-static bool_t iopl_ok(const struct vcpu *v, const struct cpu_user_regs *regs)
+static bool iopl_ok(const struct vcpu *v, const struct cpu_user_regs *regs)
 {
     unsigned int cpl = guest_kernel_mode(v, regs) ?
         (VM_ASSIST(v->domain, architectural_iopl) ? 0 : 1) : 3;
@@ -318,9 +318,8 @@ static io_emul_stub_t *io_emul_stub_setup(struct priv_op_ctxt *ctxt, u8 opcode,
 }
 
 /* Has the guest requested sufficient permission for this I/O access? */
-static int guest_io_okay(
-    unsigned int port, unsigned int bytes,
-    struct vcpu *v, struct cpu_user_regs *regs)
+static int guest_io_okay(unsigned int port, unsigned int bytes,
+                         struct vcpu *v, struct cpu_user_regs *regs)
 {
     /* If in user mode, switch to kernel mode just to read I/O bitmap. */
     int user_mode = !(v->arch.flags & TF_kernel_mode);
@@ -353,11 +352,13 @@ static int guest_io_okay(
             return 1;
     }
 
+#undef TOGGLE_MODE
     return 0;
 }
 
 static unsigned int check_guest_io_breakpoint(struct vcpu *v,
-    unsigned int port, unsigned int len)
+                                              unsigned int port,
+                                              unsigned int len)
 {
     unsigned int width, i, match = 0;
     unsigned long start;
@@ -392,8 +393,8 @@ static unsigned int check_guest_io_breakpoint(struct vcpu *v,
 }
 
 /* Has the administrator granted sufficient permission for this I/O access? */
-static bool_t admin_io_okay(unsigned int port, unsigned int bytes,
-                            const struct domain *d)
+static bool admin_io_okay(unsigned int port, unsigned int bytes,
+                          const struct domain *d)
 {
     /*
      * Port 0xcf8 (CONFIG_ADDRESS) is only visible for DWORD accesses.
@@ -409,8 +410,8 @@ static bool_t admin_io_okay(unsigned int port, unsigned int bytes,
     return ioports_access_permitted(d, port, port + bytes - 1);
 }
 
-static bool_t pci_cfg_ok(struct domain *currd, unsigned int start,
-                         unsigned int size, uint32_t *write)
+static bool pci_cfg_ok(struct domain *currd, unsigned int start,
+                       unsigned int size, uint32_t *write)
 {
     uint32_t machine_bdf;
 
@@ -518,7 +519,8 @@ void guest_io_write(unsigned int port, unsigned int bytes, uint32_t data,
 {
     if ( admin_io_okay(port, bytes, currd) )
     {
-        switch ( bytes ) {
+        switch ( bytes )
+        {
         case 1:
             outb((uint8_t)data, port);
             if ( pv_post_outb_hook )
@@ -1587,8 +1589,8 @@ static int read_gate_descriptor(unsigned int gate_sel,
     return 1;
 }
 
-static inline int check_stack_limit(unsigned int ar, unsigned int limit,
-                                    unsigned int esp, unsigned int decr)
+static inline bool check_stack_limit(unsigned int ar, unsigned int limit,
+                                     unsigned int esp, unsigned int decr)
 {
     return (((esp - decr) < (esp - 1)) &&
             (!(ar & _SEGMENT_EC) ? (esp - 1) <= limit : (esp - decr) > limit));
