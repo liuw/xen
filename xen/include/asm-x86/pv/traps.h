@@ -26,12 +26,14 @@
 #include <public/xen.h>
 
 int emulate_privileged_op(struct cpu_user_regs *regs);
+void emulate_gate_op(struct cpu_user_regs *regs);
 
 #else  /* !CONFIG_PV */
 
 #include <xen/errno.h>
 
 int emulate_privileged_op(struct cpu_user_regs *regs) { return -EOPNOTSUPP; }
+void emulate_gate_op(struct cpu_user_regs *regs) {}
 
 #endif	/* CONFIG_PV */
 
