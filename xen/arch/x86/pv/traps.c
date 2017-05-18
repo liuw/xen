@@ -148,6 +148,7 @@ void pv_inject_event(const struct x86_event *event)
     bool use_error_code;
 
     ASSERT(vector == event->vector); /* Confirm no truncation. */
+
     if ( event->type == X86_EVENTTYPE_HW_EXCEPTION )
     {
         ASSERT(vector < 32);
@@ -158,6 +159,7 @@ void pv_inject_event(const struct x86_event *event)
         ASSERT(event->type == X86_EVENTTYPE_SW_INTERRUPT);
         use_error_code = false;
     }
+
     if ( use_error_code )
         ASSERT(error_code != X86_EVENT_NO_EC);
     else
@@ -217,6 +219,7 @@ int set_guest_machinecheck_trapbounce(void)
 
     pv_inject_hw_exception(TRAP_machine_check, X86_EVENT_NO_EC);
     tb->flags &= ~TBF_EXCEPTION; /* not needed for MCE delivery path */
+
     return !null_trap_bounce(v, tb);
 }
 
@@ -228,8 +231,10 @@ int set_guest_nmi_trapbounce(void)
 {
     struct vcpu *v = current;
     struct trap_bounce *tb = &v->arch.pv_vcpu.trap_bounce;
+
     pv_inject_hw_exception(TRAP_nmi, X86_EVENT_NO_EC);
     tb->flags &= ~TBF_EXCEPTION; /* not needed for NMI delivery path */
+
     return !null_trap_bounce(v, tb);
 }
 
@@ -301,15 +306,17 @@ int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
     case TRAP_nmi:
         if ( cmpxchgptr(&st->vcpu, NULL, v) )
             return -EBUSY;
+
         if ( !test_and_set_bool(v->nmi_pending) )
         {
-               st->domain = d;
-               st->processor = v->processor;
+            st->domain = d;
+            st->processor = v->processor;
 
-               /* not safe to wake up a vcpu here */
-               raise_softirq(NMI_MCE_SOFTIRQ);
-               return 0;
+            /* not safe to wake up a vcpu here */
+            raise_softirq(NMI_MCE_SOFTIRQ);
+            return 0;
         }
+
         st->vcpu = NULL;
         break;
 
@@ -318,17 +325,19 @@ int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
             return -EBUSY;
 
         /* We are called by the machine check (exception or polling) handlers
-         * on the physical CPU that reported a machine check error. */
+         * on the physical CPU that reported a machine check error.
+         */
 
         if ( !test_and_set_bool(v->mce_pending) )
         {
-                st->domain = d;
-                st->processor = v->processor;
+            st->domain = d;
+            st->processor = v->processor;
 
-                /* not safe to wake up a vcpu here */
-                raise_softirq(NMI_MCE_SOFTIRQ);
-                return 0;
+            /* not safe to wake up a vcpu here */
+            raise_softirq(NMI_MCE_SOFTIRQ);
+            return 0;
         }
+
         st->vcpu = NULL;
         break;
     }
@@ -341,6 +350,7 @@ void toggle_guest_mode(struct vcpu *v)
 {
     if ( is_pv_32bit_vcpu(v) )
         return;
+
     if ( cpu_has_fsgsbase )
     {
         if ( v->arch.flags & TF_kernel_mode )
@@ -348,6 +358,7 @@ void toggle_guest_mode(struct vcpu *v)
         else
             v->arch.pv_vcpu.gs_base_user = __rdgsbase();
     }
+
     v->arch.flags ^= TF_kernel_mode;
     asm volatile ( "swapgs" );
     update_cr3(v);
@@ -362,8 +373,7 @@ void toggle_guest_mode(struct vcpu *v)
         v->arch.pv_vcpu.need_update_runstate_area = 0;
 
     if ( v->arch.pv_vcpu.pending_system_time.version &&
-         update_secondary_system_time(v,
-                                      &v->arch.pv_vcpu.pending_system_time) )
+         update_secondary_system_time(v, &v->arch.pv_vcpu.pending_system_time) )
         v->arch.pv_vcpu.pending_system_time.version = 0;
 }
 
@@ -428,8 +438,8 @@ void init_int80_direct_trap(struct vcpu *v)
     struct trap_info *ti = &v->arch.pv_vcpu.trap_ctxt[0x80];
     struct trap_bounce *tb = &v->arch.pv_vcpu.int80_bounce;
 
-    tb->cs    = ti->cs;
-    tb->eip   = ti->address;
+    tb->cs  = ti->cs;
+    tb->eip = ti->address;
 
     if ( null_trap_bounce(v, tb) )
         tb->flags = 0;
@@ -448,27 +458,31 @@ static long register_guest_callback(struct callback_register *reg)
     switch ( reg->type )
     {
     case CALLBACKTYPE_event:
-        v->arch.pv_vcpu.event_callback_eip    = reg->address;
+        v->arch.pv_vcpu.event_callback_eip = reg->address;
         break;
 
     case CALLBACKTYPE_failsafe:
         v->arch.pv_vcpu.failsafe_callback_eip = reg->address;
+
         if ( reg->flags & CALLBACKF_mask_events )
             set_bit(_VGCF_failsafe_disables_events,
                     &v->arch.vgc_flags);
         else
             clear_bit(_VGCF_failsafe_disables_events,
                       &v->arch.vgc_flags);
+
         break;
 
     case CALLBACKTYPE_syscall:
         v->arch.pv_vcpu.syscall_callback_eip  = reg->address;
+
         if ( reg->flags & CALLBACKF_mask_events )
             set_bit(_VGCF_syscall_disables_events,
                     &v->arch.vgc_flags);
         else
             clear_bit(_VGCF_syscall_disables_events,
                       &v->arch.vgc_flags);
+
         break;
 
     case CALLBACKTYPE_syscall32:
@@ -674,13 +688,16 @@ void compat_show_guest_stack(struct vcpu *v, const struct cpu_user_regs *regs,
         printk(" %08x", addr);
         stack++;
     }
+
     if ( mask == PAGE_SIZE )
     {
         BUILD_BUG_ON(PAGE_SIZE == STACK_SIZE);
         unmap_domain_page(stack);
     }
+
     if ( i == 0 )
         printk("Stack empty.");
+
     printk("\n");
 }
 
@@ -702,7 +719,7 @@ unsigned int compat_iret(void)
 
     /* Restore CS and EIP. */
     if ( unlikely(__get_user(regs->eip, (u32 *)regs->rsp + 1)) ||
-        unlikely(__get_user(regs->cs, (u32 *)regs->rsp + 2)) )
+         unlikely(__get_user(regs->cs, (u32 *)regs->rsp + 2)) )
     {
         domain_crash(v->domain);
         return 0;
@@ -740,6 +757,7 @@ unsigned int compat_iret(void)
 
         gdprintk(XENLOG_ERR, "VM86 mode unavailable (ksp:%08X->%08X)\n",
                  regs->esp, ksp);
+
         if ( ksp < regs->esp )
         {
             for (i = 1; i < 10; ++i)
@@ -756,24 +774,29 @@ unsigned int compat_iret(void)
                 rc |= __put_user(x, (u32 *)(unsigned long)ksp + i);
             }
         }
+
         if ( rc )
         {
             domain_crash(v->domain);
             return 0;
         }
+
         regs->esp = ksp;
         regs->ss = v->arch.pv_vcpu.kernel_ss;
 
         ti = &v->arch.pv_vcpu.trap_ctxt[TRAP_gp_fault];
         if ( TI_GET_IF(ti) )
             eflags &= ~X86_EFLAGS_IF;
+
         regs->eflags &= ~(X86_EFLAGS_VM|X86_EFLAGS_RF|
                           X86_EFLAGS_NT|X86_EFLAGS_TF);
+
         if ( unlikely(__put_user(0, (u32 *)regs->rsp)) )
         {
             domain_crash(v->domain);
             return 0;
         }
+
         regs->eip = ti->address;
         regs->cs = ti->cs;
     }
@@ -804,8 +827,7 @@ unsigned int compat_iret(void)
     return regs->eax;
 }
 
-static long compat_register_guest_callback(
-    struct compat_callback_register *reg)
+static long compat_register_guest_callback(struct compat_callback_register *reg)
 {
     long ret = 0;
     struct vcpu *v = current;
@@ -822,12 +844,14 @@ static long compat_register_guest_callback(
     case CALLBACKTYPE_failsafe:
         v->arch.pv_vcpu.failsafe_callback_cs  = reg->address.cs;
         v->arch.pv_vcpu.failsafe_callback_eip = reg->address.eip;
+
         if ( reg->flags & CALLBACKF_mask_events )
             set_bit(_VGCF_failsafe_disables_events,
                     &v->arch.vgc_flags);
         else
             clear_bit(_VGCF_failsafe_disables_events,
                       &v->arch.vgc_flags);
+
         break;
 
     case CALLBACKTYPE_syscall32:
