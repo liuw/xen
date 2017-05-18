@@ -978,26 +978,6 @@ void cpuid_hypervisor_leaves(const struct vcpu *v, uint32_t leaf,
     }
 }
 
-static int emulate_invalid_rdtscp(struct cpu_user_regs *regs)
-{
-    char opcode[3];
-    unsigned long eip, rc;
-    struct vcpu *v = current;
-
-    eip = regs->rip;
-    if ( (rc = copy_from_user(opcode, (char *)eip, sizeof(opcode))) != 0 )
-    {
-        pv_inject_page_fault(0, eip + sizeof(opcode) - rc);
-        return EXCRET_fault_fixed;
-    }
-    if ( memcmp(opcode, "\xf\x1\xf9", sizeof(opcode)) )
-        return 0;
-    eip += sizeof(opcode);
-    pv_soft_rdtsc(v, regs, 1);
-    instruction_done(regs, eip);
-    return EXCRET_fault_fixed;
-}
-
 static int emulate_forced_invalid_op(struct cpu_user_regs *regs)
 {
     char sig[5], instr[2];

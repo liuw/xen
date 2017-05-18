@@ -27,6 +27,7 @@
 
 int emulate_privileged_op(struct cpu_user_regs *regs);
 void emulate_gate_op(struct cpu_user_regs *regs);
+int emulate_invalid_rdtscp(struct cpu_user_regs *regs);
 
 #else  /* !CONFIG_PV */
 
@@ -34,6 +35,7 @@ void emulate_gate_op(struct cpu_user_regs *regs);
 
 int emulate_privileged_op(struct cpu_user_regs *regs) { return -EOPNOTSUPP; }
 void emulate_gate_op(struct cpu_user_regs *regs) {}
+int emulate_invalid_rdtscp(struct cpu_user_regs *regs) { return 0; }
 
 #endif	/* CONFIG_PV */
 
