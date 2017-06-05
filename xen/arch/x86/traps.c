@@ -1909,24 +1909,6 @@ void __init trap_init(void)
     open_softirq(PCI_SERR_SOFTIRQ, pci_serr_softirq);
 }
 
-int guest_has_trap_callback(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
-{
-    struct vcpu *v;
-    struct trap_info *t;
-
-    BUG_ON(d == NULL);
-    BUG_ON(vcpuid >= d->max_vcpus);
-
-    /* Sanity check - XXX should be more fine grained. */
-    BUG_ON(trap_nr >= NR_VECTORS);
-
-    v = d->vcpu[vcpuid];
-    t = &v->arch.pv_vcpu.trap_ctxt[trap_nr];
-
-    return (t->address != 0);
-}
-
-
 int send_guest_trap(struct domain *d, uint16_t vcpuid, unsigned int trap_nr)
 {
     struct vcpu *v;

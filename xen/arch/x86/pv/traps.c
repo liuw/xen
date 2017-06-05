@@ -219,6 +219,24 @@ long unregister_guest_nmi_callback(void)
     return 0;
 }
 
+bool guest_has_trap_callback(const struct domain *d, unsigned int vcpuid,
+                             unsigned int trap_nr)
+{
+    const struct vcpu *v;
+    const struct trap_info *t;
+
+    BUG_ON(d == NULL);
+    BUG_ON(vcpuid >= d->max_vcpus);
+
+    /* Sanity check - XXX should be more fine grained. */
+    BUG_ON(trap_nr >= NR_VECTORS);
+
+    v = d->vcpu[vcpuid];
+    t = &v->arch.pv_vcpu.trap_ctxt[trap_nr];
+
+    return t->address;
+}
+
 /*
  * Local variables:
  * mode: C
