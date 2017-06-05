@@ -26,10 +26,12 @@
 #include <public/xen.h>
 
 int pv_emulate_privileged_op(struct cpu_user_regs *regs);
+void pv_emulate_gate_op(struct cpu_user_regs *regs);
 
 #else  /* !CONFIG_PV */
 
 int pv_emulate_privileged_op(struct cpu_user_regs *regs) { return 0; }
+void pv_emulate_gate_op(struct cpu_user_regs *regs) {}
 
 #endif /* CONFIG_PV */
 
