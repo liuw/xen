@@ -1871,20 +1871,27 @@ void __init init_idt_traps(void)
     this_cpu(compat_gdt_table) = boot_cpu_compat_gdt_table;
 }
 
-extern void (*const autogen_entrypoints[NR_VECTORS])(void);
-void __init trap_init(void)
+void __init pv_trap_init(void)
 {
-    unsigned int vector;
-
-    /* Replace early pagefault with real pagefault handler. */
-    set_intr_gate(TRAP_page_fault, &page_fault);
-
     /* The 32-on-64 hypercall vector is only accessible from ring 1. */
     _set_gate(idt_table + HYPERCALL_VECTOR,
               SYS_DESC_trap_gate, 1, entry_int82);
 
     /* Fast trap for int80 (faster than taking the #GP-fixup path). */
     _set_gate(idt_table + 0x80, SYS_DESC_trap_gate, 3, &int80_direct_trap);
+
+    open_softirq(NMI_MCE_SOFTIRQ, nmi_mce_softirq);
+}
+
+extern void (*const autogen_entrypoints[NR_VECTORS])(void);
+void __init trap_init(void)
+{
+    unsigned int vector;
+
+    pv_trap_init();
+
+    /* Replace early pagefault with real pagefault handler. */
+    set_intr_gate(TRAP_page_fault, &page_fault);
 
     for ( vector = 0; vector < NR_VECTORS; ++vector )
     {
@@ -1905,7 +1912,6 @@ void __init trap_init(void)
 
     cpu_init();
 
-    open_softirq(NMI_MCE_SOFTIRQ, nmi_mce_softirq);
     open_softirq(PCI_SERR_SOFTIRQ, pci_serr_softirq);
 }
 

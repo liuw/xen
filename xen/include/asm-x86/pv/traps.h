@@ -25,12 +25,16 @@
 
 #include <public/xen.h>
 
+void pv_trap_init(void);
+
 int pv_emulate_privileged_op(struct cpu_user_regs *regs);
 void pv_emulate_gate_op(struct cpu_user_regs *regs);
 int pv_emulate_invalid_rdtscp(struct cpu_user_regs *regs);
 int pv_emulate_forced_invalid_op(struct cpu_user_regs *regs);
 
 #else  /* !CONFIG_PV */
+
+void pv_trap_init(void) {}
 
 int pv_emulate_privileged_op(struct cpu_user_regs *regs) { return 0; }
 void pv_emulate_gate_op(struct cpu_user_regs *regs) {}
