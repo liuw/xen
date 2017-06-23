@@ -359,6 +359,15 @@ static int vmce_load_vcpu_ctxt(struct domain *d, hvm_domain_context_t *h)
 HVM_REGISTER_SAVE_RESTORE(VMCE_VCPU, vmce_save_vcpu_ctxt,
                           vmce_load_vcpu_ctxt, 1, HVMSR_PER_VCPU);
 
+static inline bool pv_callback_registered(const struct vcpu *v, uint8_t vector)
+{
+#ifdef CONFIG_PV
+    return v->arch.pv_vcpu.trap_ctxt[vector].address;
+#else
+    return false;
+#endif
+}
+
 /*
  * for Intel MCE, broadcast vMCE to all vcpus
  * for AMD MCE, only inject vMCE to vcpu0
@@ -383,7 +392,7 @@ int inject_vmce(struct domain *d, int vcpu)
             continue;
 
         if ( (is_hvm_domain(d) ||
-              guest_has_trap_callback(d, v->vcpu_id, TRAP_machine_check)) &&
+              pv_callback_registered(v, TRAP_machine_check)) &&
              !test_and_set_bool(v->mce_pending) )
         {
             mce_printk(MCE_VERBOSE, "MCE: inject vMCE to %pv\n", v);
