@@ -7,9 +7,9 @@
 
 extern unsigned char mp_bus_id_to_type[MAX_MP_BUSSES];
 
-extern bool_t def_to_bigsmp;
+extern bool def_to_bigsmp;
 extern unsigned int boot_cpu_physical_apicid;
-extern bool_t smp_found_config;
+extern bool smp_found_config;
 extern void find_smp_config (void);
 extern void get_smp_config (void);
 extern unsigned char apic_version [MAX_APICS];
@@ -17,7 +17,7 @@ extern int mp_irq_entries;
 extern struct mpc_config_intsrc mp_irqs [MAX_IRQ_SOURCES];
 extern int mpc_default_type;
 extern unsigned long mp_lapic_addr;
-extern bool_t pic_mode;
+extern bool pic_mode;
 
 #ifdef CONFIG_ACPI
 extern int mp_register_lapic(u32 id, bool_t enabled, bool_t hotplug);
