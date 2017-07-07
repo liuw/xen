@@ -123,6 +123,9 @@
 #include <asm/io_apic.h>
 #include <asm/pci.h>
 
+#include <asm/hvm/grant_table.h>
+#include <asm/pv/grant_table.h>
+
 /* Mapping of the fixmap space needed early. */
 l1_pgentry_t __section(".bss.page_aligned") __aligned(PAGE_SIZE)
     l1_fixmap[L1_PAGETABLE_ENTRIES];
@@ -4242,9 +4245,9 @@ static int destroy_grant_va_mapping(
     return replace_grant_va_mapping(addr, frame, l1e_empty(), v);
 }
 
-static int create_grant_p2m_mapping(uint64_t addr, unsigned long frame,
-                                    unsigned int flags,
-                                    unsigned int cache_flags)
+int create_grant_p2m_mapping(uint64_t addr, unsigned long frame,
+                             unsigned int flags,
+                             unsigned int cache_flags)
 {
     p2m_type_t p2mt;
     int rc;
@@ -4265,14 +4268,11 @@ static int create_grant_p2m_mapping(uint64_t addr, unsigned long frame,
         return GNTST_okay;
 }
 
-int create_grant_host_mapping(uint64_t addr, unsigned long frame,
-                              unsigned int flags, unsigned int cache_flags)
+int create_grant_pv_mapping(uint64_t addr, unsigned long frame,
+                            unsigned int flags, unsigned int cache_flags)
 {
     l1_pgentry_t pte;
     uint32_t grant_pte_flags;
-
-    if ( paging_mode_external(current->domain) )
-        return create_grant_p2m_mapping(addr, frame, flags, cache_flags);
 
     grant_pte_flags =
         _PAGE_PRESENT | _PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_GNTTAB;
