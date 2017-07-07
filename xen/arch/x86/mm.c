@@ -151,8 +151,6 @@ bool __read_mostly machine_to_phys_mapping_valid;
 
 struct rangeset *__read_mostly mmio_ro_ranges;
 
-#define PAGE_CACHE_ATTRS (_PAGE_PAT|_PAGE_PCD|_PAGE_PWT)
-
 bool __read_mostly opt_allow_superpage;
 boolean_param("allowsuperpage", opt_allow_superpage);
 
