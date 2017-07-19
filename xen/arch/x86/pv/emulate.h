@@ -10,4 +10,6 @@ void pv_emul_instruction_done(struct cpu_user_regs *regs, unsigned long rip);
 int pv_emul_is_mem_write(const struct x86_emulate_state *state,
                          struct x86_emulate_ctxt *ctxt);
 
+int pv_emul_ptwr_read(enum x86_segment seg, unsigned long offset, void *p_data,
+                      unsigned int bytes, struct x86_emulate_ctxt *ctxt);
 #endif /* __PV_EMULATE_H__ */
