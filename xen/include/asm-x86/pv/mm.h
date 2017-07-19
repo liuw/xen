@@ -87,6 +87,9 @@ bool pv_update_intpte(intpte_t *p, intpte_t old, intpte_t new,
                      _t ## e_get_intpte(_o), _t ## e_get_intpte(_n),   \
                      (_m), (_v), (_ad))
 
+l1_pgentry_t *pv_map_guest_l1e(unsigned long addr, unsigned long *gl1mfn);
+void pv_unmap_guest_l1e(void *p);
+
 #else
 
 static inline void pv_get_guest_eff_l1e(unsigned long addr,
@@ -101,6 +104,12 @@ static inline bool pv_update_intpte(intpte_t *p, intpte_t old, intpte_t new,
                                     unsigned long mfn, struct vcpu *v,
                                     int preserve_ad)
 { return false; }
+
+static inline l1_pgentry_t *pv_map_guest_l1e(unsigned long addr,
+                                             unsigned long *gl1mfn);
+{ return NULL; }
+
+static inline void pv_unmap_guest_l1e(void *p) {}
 
 #endif
 

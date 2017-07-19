@@ -63,6 +63,39 @@ void pv_get_guest_eff_kern_l1e(struct vcpu *v, unsigned long addr,
         toggle_guest_mode(v);
 }
 
+/* Get a mapping of a PV guest's l1e for this virtual address. */
+l1_pgentry_t *pv_map_guest_l1e(unsigned long addr, unsigned long *gl1mfn)
+{
+    l2_pgentry_t l2e;
+
+    ASSERT(!paging_mode_translate(current->domain));
+    ASSERT(!paging_mode_external(current->domain));
+
+    if ( unlikely(!__addr_ok(addr)) )
+        return NULL;
+
+    /* Find this l1e and its enclosing l1mfn in the linear map. */
+    if ( __copy_from_user(&l2e,
+                          &__linear_l2_table[l2_linear_offset(addr)],
+                          sizeof(l2_pgentry_t)) )
+        return NULL;
+
+    /* Check flags that it will be safe to read the l1e. */
+    if ( (l2e_get_flags(l2e) & (_PAGE_PRESENT | _PAGE_PSE)) != _PAGE_PRESENT )
+        return NULL;
+
+    *gl1mfn = l2e_get_pfn(l2e);
+
+    return (l1_pgentry_t *)map_domain_page(_mfn(*gl1mfn)) +
+           l1_table_offset(addr);
+}
+
+/* Pull down the mapping we got from pv_map_guest_l1e(). */
+void pv_unmap_guest_l1e(void *p)
+{
+    unmap_domain_page(p);
+}
+
 /*
  * How to write an entry to the guest pagetables.
  * Returns false for failure (pointer not valid), true for success.
