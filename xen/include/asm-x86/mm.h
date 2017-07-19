@@ -363,6 +363,7 @@ int  put_old_guest_table(struct vcpu *);
 int  get_page_from_l1e(
     l1_pgentry_t l1e, struct domain *l1e_owner, struct domain *pg_owner);
 void put_page_from_l1e(l1_pgentry_t l1e, struct domain *l1e_owner);
+int get_page_from_pagenr(unsigned long page_nr, struct domain *d);
 
 static inline void put_page_and_type(struct page_info *page)
 {

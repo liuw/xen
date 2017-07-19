@@ -689,7 +689,7 @@ int map_ldt_shadow_page(unsigned int off)
 }
 
 
-static int get_page_from_pagenr(unsigned long page_nr, struct domain *d)
+int get_page_from_pagenr(unsigned long page_nr, struct domain *d)
 {
     struct page_info *page = mfn_to_page(page_nr);
 
@@ -697,10 +697,10 @@ static int get_page_from_pagenr(unsigned long page_nr, struct domain *d)
     {
         gdprintk(XENLOG_WARNING,
                  "Could not get page ref for mfn %"PRI_mfn"\n", page_nr);
-        return 0;
+        return -EINVAL;
     }
 
-    return 1;
+    return 0;
 }
 
 
@@ -714,7 +714,7 @@ static int get_page_and_type_from_pagenr(unsigned long page_nr,
     int rc;
 
     if ( likely(partial >= 0) &&
-         unlikely(!get_page_from_pagenr(page_nr, d)) )
+         unlikely(get_page_from_pagenr(page_nr, d)) )
         return -EINVAL;
 
     rc = (preemptible ?
@@ -768,7 +768,7 @@ get_##level##_linear_pagetable(                                             \
     if ( (pfn = level##e_get_pfn(pde)) != pde_pfn )                         \
     {                                                                       \
         /* Make sure the mapped frame belongs to the correct domain. */     \
-        if ( unlikely(!get_page_from_pagenr(pfn, d)) )                      \
+        if ( unlikely(get_page_from_pagenr(pfn, d)) )                       \
             return 0;                                                       \
                                                                             \
         /*                                                                  \
@@ -2998,7 +2998,7 @@ int new_guest_cr3(unsigned long mfn)
     }
 
     rc = paging_mode_refcounts(d)
-         ? (get_page_from_pagenr(mfn, d) ? 0 : -EINVAL)
+         ? (!get_page_from_pagenr(mfn, d) ? 0 : -EINVAL)
          : get_page_and_type_from_pagenr(mfn, PGT_root_page_table, d, 0, 1);
     switch ( rc )
     {
@@ -3921,7 +3921,7 @@ long do_mmu_update(
                 xsm_checked = xsm_needed;
             }
 
-            if ( unlikely(!get_page_from_pagenr(mfn, pg_owner)) )
+            if ( unlikely(get_page_from_pagenr(mfn, pg_owner)) )
             {
                 gdprintk(XENLOG_WARNING,
                          "Could not get page for mach->phys update\n");
@@ -4135,7 +4135,7 @@ static int create_grant_va_mapping(
         return GNTST_general_error;
     }
 
-    if ( !get_page_from_pagenr(gl1mfn, current->domain) )
+    if ( get_page_from_pagenr(gl1mfn, current->domain) )
     {
         guest_unmap_l1e(pl1e);
         return GNTST_general_error;
@@ -4185,7 +4185,7 @@ static int replace_grant_va_mapping(
         return GNTST_general_error;
     }
 
-    if ( !get_page_from_pagenr(gl1mfn, current->domain) )
+    if ( get_page_from_pagenr(gl1mfn, current->domain) )
     {
         rc = GNTST_general_error;
         goto out;
@@ -4295,7 +4295,7 @@ int replace_grant_pv_mapping(uint64_t addr, unsigned long frame,
         return GNTST_general_error;
     }
 
-    if ( !get_page_from_pagenr(gl1mfn, current->domain) )
+    if ( get_page_from_pagenr(gl1mfn, current->domain) )
     {
         guest_unmap_l1e(pl1e);
         return GNTST_general_error;
@@ -4466,7 +4466,7 @@ static int __do_update_va_mapping(
 
     rc = -EINVAL;
     pl1e = guest_map_l1e(va, &gl1mfn);
-    if ( unlikely(!pl1e || !get_page_from_pagenr(gl1mfn, d)) )
+    if ( unlikely(!pl1e || get_page_from_pagenr(gl1mfn, d)) )
         goto out;
 
     gl1pg = mfn_to_page(gl1mfn);
@@ -4838,7 +4838,7 @@ int xenmem_add_to_physmap_one(
                 put_gfn(d, gfn);
                 return -ENOMEM;
             }
-            if ( !get_page_from_pagenr(idx, d) )
+            if ( get_page_from_pagenr(idx, d) )
                 break;
             mfn = idx;
             page = mfn_to_page(mfn);
@@ -5371,7 +5371,7 @@ int ptwr_do_page_fault(struct vcpu *v, unsigned long addr,
     /* We are looking only for read-only mappings of p.t. pages. */
     if ( ((l1e_get_flags(pte) & (_PAGE_PRESENT|_PAGE_RW)) != _PAGE_PRESENT) ||
          rangeset_contains_singleton(mmio_ro_ranges, l1e_get_pfn(pte)) ||
-         !get_page_from_pagenr(l1e_get_pfn(pte), d) )
+         get_page_from_pagenr(l1e_get_pfn(pte), d) )
         goto bail;
 
     page = l1e_get_page(pte);
