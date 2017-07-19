@@ -126,6 +126,8 @@
 #include <asm/hvm/grant_table.h>
 #include <asm/pv/grant_table.h>
 
+#include "pv/emulate.h"
+
 /* Mapping of the fixmap space needed early. */
 l1_pgentry_t __section(".bss.page_aligned") __aligned(PAGE_SIZE)
     l1_fixmap[L1_PAGETABLE_ENTRIES];
@@ -5364,13 +5366,6 @@ static int ptwr_emulated_cmpxchg(
     return ptwr_emulated_update(
         offset, old, new, bytes, 1,
         container_of(ctxt, struct ptwr_emulate_ctxt, ctxt));
-}
-
-static int pv_emul_is_mem_write(const struct x86_emulate_state *state,
-                                struct x86_emulate_ctxt *ctxt)
-{
-    return x86_insn_is_mem_write(state, ctxt) ? X86EMUL_OKAY
-                                              : X86EMUL_UNHANDLEABLE;
 }
 
 static const struct x86_emulate_ops ptwr_emulate_ops = {
