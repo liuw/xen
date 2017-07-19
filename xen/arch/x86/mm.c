@@ -125,6 +125,7 @@
 
 #include <asm/hvm/grant_table.h>
 #include <asm/pv/grant_table.h>
+#include <asm/pv/mm.h>
 
 #include "pv/emulate.h"
 
@@ -577,37 +578,6 @@ static inline void guest_unmap_l1e(void *p)
     unmap_domain_page(p);
 }
 
-/* Read a PV guest's l1e that maps this virtual address. */
-static inline void guest_get_eff_l1e(unsigned long addr, l1_pgentry_t *eff_l1e)
-{
-    ASSERT(!paging_mode_translate(current->domain));
-    ASSERT(!paging_mode_external(current->domain));
-
-    if ( unlikely(!__addr_ok(addr)) ||
-         __copy_from_user(eff_l1e,
-                          &__linear_l1_table[l1_linear_offset(addr)],
-                          sizeof(l1_pgentry_t)) )
-        *eff_l1e = l1e_empty();
-}
-
-/*
- * Read the guest's l1e that maps this address, from the kernel-mode
- * page tables.
- */
-static inline void guest_get_eff_kern_l1e(struct vcpu *v, unsigned long addr,
-                                          void *eff_l1e)
-{
-    const bool user_mode = !(v->arch.flags & TF_kernel_mode);
-
-    if ( user_mode )
-        toggle_guest_mode(v);
-
-    guest_get_eff_l1e(addr, eff_l1e);
-
-    if ( user_mode )
-        toggle_guest_mode(v);
-}
-
 static inline void page_set_tlbflush_timestamp(struct page_info *page)
 {
     /*
@@ -692,7 +662,7 @@ int map_ldt_shadow_page(unsigned int off)
 
     if ( is_pv_32bit_domain(d) )
         gva = (u32)gva;
-    guest_get_eff_kern_l1e(v, gva, &l1e);
+    pv_get_guest_eff_kern_l1e(v, gva, &l1e);
     if ( unlikely(!(l1e_get_flags(l1e) & _PAGE_PRESENT)) )
         return 0;
 
@@ -5396,7 +5366,7 @@ int ptwr_do_page_fault(struct vcpu *v, unsigned long addr,
     int rc;
 
     /* Attempt to read the PTE that maps the VA being accessed. */
-    guest_get_eff_l1e(addr, &pte);
+    pv_get_guest_eff_l1e(addr, &pte);
 
     /* We are looking only for read-only mappings of p.t. pages. */
     if ( ((l1e_get_flags(pte) & (_PAGE_PRESENT|_PAGE_RW)) != _PAGE_PRESENT) ||
@@ -5551,7 +5521,7 @@ int mmio_ro_do_page_fault(struct vcpu *v, unsigned long addr,
     int rc;
 
     /* Attempt to read the PTE that maps the VA being accessed. */
-    guest_get_eff_l1e(addr, &pte);
+    pv_get_guest_eff_l1e(addr, &pte);
 
     /* We are looking only for read-only mappings of MMIO pages. */
     if ( ((l1e_get_flags(pte) & (_PAGE_PRESENT|_PAGE_RW)) != _PAGE_PRESENT) )
