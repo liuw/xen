@@ -24,6 +24,13 @@
 
 #include <asm/pv/mm.h>
 
+/*
+ * PTE updates can be done with ordinary writes except:
+ *  1. Debug builds get extra checking by using CMPXCHG[8B].
+ */
+#if !defined(NDEBUG)
+#define PTE_UPDATE_WITH_CMPXCHG
+#endif
 
 /* Read a PV guest's l1e that maps this virtual address. */
 void pv_get_guest_eff_l1e(unsigned long addr, l1_pgentry_t *eff_l1e)
@@ -54,6 +61,53 @@ void pv_get_guest_eff_kern_l1e(struct vcpu *v, unsigned long addr,
 
     if ( user_mode )
         toggle_guest_mode(v);
+}
+
+/*
+ * How to write an entry to the guest pagetables.
+ * Returns false for failure (pointer not valid), true for success.
+ */
+bool pv_update_intpte(intpte_t *p, intpte_t old, intpte_t new,
+                      unsigned long mfn, struct vcpu *v, int preserve_ad)
+{
+    bool rv = true;
+
+#ifndef PTE_UPDATE_WITH_CMPXCHG
+    if ( !preserve_ad )
+    {
+        rv = paging_write_guest_entry(v, p, new, _mfn(mfn));
+    }
+    else
+#endif
+    {
+        intpte_t t = old;
+
+        for ( ; ; )
+        {
+            intpte_t _new = new;
+
+            if ( preserve_ad )
+                _new |= old & (_PAGE_ACCESSED | _PAGE_DIRTY);
+
+            rv = paging_cmpxchg_guest_entry(v, p, &t, _new, _mfn(mfn));
+            if ( unlikely(rv == 0) )
+            {
+                gdprintk(XENLOG_WARNING,
+                         "Failed to update %" PRIpte " -> %" PRIpte
+                         ": saw %" PRIpte "\n", old, _new, t);
+                break;
+            }
+
+            if ( t == old )
+                break;
+
+            /* Allowed to change in Accessed/Dirty flags only. */
+            BUG_ON((t ^ old) & ~(intpte_t)(_PAGE_ACCESSED|_PAGE_DIRTY));
+
+            old = t;
+        }
+    }
+    return rv;
 }
 
 /*

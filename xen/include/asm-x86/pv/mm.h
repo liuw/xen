@@ -21,12 +21,24 @@
 #ifndef __X86_PV_MM_H__
 #define __X86_PV_MM_H__
 
+
 #ifdef CONFIG_PV
 
 void pv_get_guest_eff_l1e(unsigned long addr, l1_pgentry_t *eff_l1e);
 
 void pv_get_guest_eff_kern_l1e(struct vcpu *v, unsigned long addr,
                                void *eff_l1e);
+
+bool pv_update_intpte(intpte_t *p, intpte_t old, intpte_t new,
+                      unsigned long mfn, struct vcpu *v, int preserve_ad);
+/*
+ * Macro that wraps the appropriate type-changes around update_intpte().
+ * Arguments are: type, ptr, old, new, mfn, vcpu
+ */
+#define UPDATE_ENTRY(_t,_p,_o,_n,_m,_v,_ad)                            \
+    pv_update_intpte(&_t ## e_get_intpte(*(_p)),                       \
+                     _t ## e_get_intpte(_o), _t ## e_get_intpte(_n),   \
+                     (_m), (_v), (_ad))
 
 #else
 
@@ -37,6 +49,11 @@ static inline void pv_get_guest_eff_l1e(unsigned long addr,
 static inline void pv_get_guest_eff_kern_l1e(struct vcpu *v, unsigned long addr,
                                              void *eff_l1e)
 {}
+
+static inline bool pv_update_intpte(intpte_t *p, intpte_t old, intpte_t new,
+                                    unsigned long mfn, struct vcpu *v,
+                                    int preserve_ad)
+{ return false; }
 
 #endif
 
