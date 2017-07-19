@@ -127,8 +127,6 @@
 #include <asm/pv/grant_table.h>
 #include <asm/pv/mm.h>
 
-#include "pv/emulate.h"
-
 /* Mapping of the fixmap space needed early. */
 l1_pgentry_t __section(".bss.page_aligned") __aligned(PAGE_SIZE)
     l1_fixmap[L1_PAGETABLE_ENTRIES];
