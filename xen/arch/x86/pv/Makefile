@@ -3,6 +3,7 @@ obj-y += domain.o
 obj-y += emulate.o
 obj-y += emul-gate-op.o
 obj-y += emul-inv-op.o
+obj-y += emul-mmio-op.o
 obj-y += emul-priv-op.o
 obj-y += emul-ptwr-op.o
 obj-y += hypercall.o
