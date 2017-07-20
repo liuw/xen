@@ -25,6 +25,7 @@
 
 void pv_destroy_gdt(struct vcpu *d);
 long pv_set_gdt(struct vcpu *d, unsigned long *frames, unsigned int entries);
+bool pv_map_ldt_shadow_page(unsigned int);
 
 #else
 
@@ -34,6 +35,7 @@ static inline void pv_destroy_gdt(struct vcpu *d) {}
 static inline long pv_set_gdt(struct vcpu *d, unsigned long *frames,
                               unsigned int entries)
 { return -EINVAL; }
+static inline bool pv_map_ldt_shadow_page(unsigned int) { return false; }
 
 #endif
 

@@ -604,48 +604,6 @@ static int alloc_segdesc_page(struct page_info *page)
 }
 
 
-/* Map shadow page at offset @off. */
-int map_ldt_shadow_page(unsigned int off)
-{
-    struct vcpu *v = current;
-    struct domain *d = v->domain;
-    unsigned long gmfn;
-    struct page_info *page;
-    l1_pgentry_t l1e, nl1e;
-    unsigned long gva = v->arch.pv_vcpu.ldt_base + (off << PAGE_SHIFT);
-    int okay;
-
-    BUG_ON(unlikely(in_irq()));
-
-    if ( is_pv_32bit_domain(d) )
-        gva = (u32)gva;
-    pv_get_guest_eff_kern_l1e(v, gva, &l1e);
-    if ( unlikely(!(l1e_get_flags(l1e) & _PAGE_PRESENT)) )
-        return 0;
-
-    gmfn = l1e_get_pfn(l1e);
-    page = get_page_from_gfn(d, gmfn, NULL, P2M_ALLOC);
-    if ( unlikely(!page) )
-        return 0;
-
-    okay = get_page_type(page, PGT_seg_desc_page);
-    if ( unlikely(!okay) )
-    {
-        put_page(page);
-        return 0;
-    }
-
-    nl1e = l1e_from_pfn(page_to_mfn(page), l1e_get_flags(l1e) | _PAGE_RW);
-
-    spin_lock(&v->arch.pv_vcpu.shadow_ldt_lock);
-    l1e_write(&gdt_ldt_ptes(d, v)[off + 16], nl1e);
-    v->arch.pv_vcpu.shadow_ldt_mapcnt++;
-    spin_unlock(&v->arch.pv_vcpu.shadow_ldt_lock);
-
-    return 1;
-}
-
-
 int get_page_from_pagenr(unsigned long page_nr, struct domain *d)
 {
     struct page_info *page = mfn_to_page(page_nr);

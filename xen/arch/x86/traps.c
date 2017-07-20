@@ -77,6 +77,7 @@
 #include <public/arch-x86/cpuid.h>
 #include <asm/cpuid.h>
 #include <xsm/xsm.h>
+#include <asm/pv/processor.h>
 #include <asm/pv/traps.h>
 
 /*
@@ -1100,7 +1101,7 @@ static int handle_gdt_ldt_mapping_fault(unsigned long offset,
     /*
      * If the fault is in another vcpu's area, it cannot be due to
      * a GDT/LDT descriptor load. Thus we can reasonably exit immediately, and
-     * indeed we have to since map_ldt_shadow_page() works correctly only on
+     * indeed we have to since pv_map_ldt_shadow_page() works correctly only on
      * accesses to a vcpu's own area.
      */
     if ( vcpu_area != curr->vcpu_id )
@@ -1112,7 +1113,7 @@ static int handle_gdt_ldt_mapping_fault(unsigned long offset,
     if ( likely(is_ldt_area) )
     {
         /* LDT fault: Copy a mapping from the guest's LDT, if it is valid. */
-        if ( likely(map_ldt_shadow_page(offset >> PAGE_SHIFT)) )
+        if ( likely(pv_map_ldt_shadow_page(offset >> PAGE_SHIFT)) )
         {
             if ( guest_mode(regs) )
                 trace_trap_two_addr(TRC_PV_GDT_LDT_MAPPING_FAULT,

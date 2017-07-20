@@ -24,6 +24,7 @@
 #include <xen/hypercall.h>
 
 #include <asm/p2m.h>
+#include <asm/pv/mm.h>
 #include <asm/pv/processor.h>
 
 /*************************
@@ -215,6 +216,47 @@ int compat_update_descriptor(u32 pa_lo, u32 pa_hi, u32 desc_lo, u32 desc_hi)
 {
     return do_update_descriptor(pa_lo | ((u64)pa_hi << 32),
                                 desc_lo | ((u64)desc_hi << 32));
+}
+
+/* Map shadow page at offset @off. */
+bool pv_map_ldt_shadow_page(unsigned int off)
+{
+    struct vcpu *curr = current;
+    struct domain *currd = curr->domain;
+    unsigned long gmfn;
+    struct page_info *page;
+    l1_pgentry_t l1e, nl1e;
+    unsigned long gva = curr->arch.pv_vcpu.ldt_base + (off << PAGE_SHIFT);
+    int okay;
+
+    BUG_ON(unlikely(in_irq()));
+
+    if ( is_pv_32bit_domain(currd) )
+        gva = (u32)gva;
+    pv_get_guest_eff_kern_l1e(curr, gva, &l1e);
+    if ( unlikely(!(l1e_get_flags(l1e) & _PAGE_PRESENT)) )
+        return false;
+
+    gmfn = l1e_get_pfn(l1e);
+    page = get_page_from_gfn(currd, gmfn, NULL, P2M_ALLOC);
+    if ( unlikely(!page) )
+        return false;
+
+    okay = get_page_type(page, PGT_seg_desc_page);
+    if ( unlikely(!okay) )
+    {
+        put_page(page);
+        return false;
+    }
+
+    nl1e = l1e_from_pfn(page_to_mfn(page), l1e_get_flags(l1e) | _PAGE_RW);
+
+    spin_lock(&curr->arch.pv_vcpu.shadow_ldt_lock);
+    l1e_write(&gdt_ldt_ptes(currd, curr)[off + 16], nl1e);
+    curr->arch.pv_vcpu.shadow_ldt_mapcnt++;
+    spin_unlock(&curr->arch.pv_vcpu.shadow_ldt_lock);
+
+    return true;
 }
 
 /*
