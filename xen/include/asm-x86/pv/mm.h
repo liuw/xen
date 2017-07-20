@@ -90,6 +90,10 @@ bool pv_update_intpte(intpte_t *p, intpte_t old, intpte_t new,
 l1_pgentry_t *pv_map_guest_l1e(unsigned long addr, unsigned long *gl1mfn);
 void pv_unmap_guest_l1e(void *p);
 
+void pv_init_guest_l4_table(l4_pgentry_t[], const struct domain *,
+                            bool zap_ro_mpt);
+void pv_arch_init_memory(void);
+
 #else
 
 static inline void pv_get_guest_eff_l1e(unsigned long addr,
@@ -111,6 +115,10 @@ static inline l1_pgentry_t *pv_map_guest_l1e(unsigned long addr,
 
 static inline void pv_unmap_guest_l1e(void *p) {}
 
+static inline void pv_init_guest_l4_table(l4_pgentry_t[],
+                                          const struct domain *,
+                                          bool zap_ro_mpt) {}
+static inline void pv_arch_init_memory(void) {}
 #endif
 
 #endif /* __X86_PV_MM_H__ */

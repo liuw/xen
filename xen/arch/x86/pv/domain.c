@@ -10,6 +10,7 @@
 #include <xen/sched.h>
 
 #include <asm/pv/domain.h>
+#include <asm/pv/mm.h>
 
 static void noreturn continue_nonidle_domain(struct vcpu *v)
 {
@@ -29,7 +30,7 @@ static int setup_compat_l4(struct vcpu *v)
 
     l4tab = __map_domain_page(pg);
     clear_page(l4tab);
-    init_guest_l4_table(l4tab, v->domain, 1);
+    pv_init_guest_l4_table(l4tab, v->domain, 1);
     unmap_domain_page(l4tab);
 
     /* This page needs to look like a pagetable so that it can be shadowed */

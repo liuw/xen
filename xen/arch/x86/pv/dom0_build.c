@@ -18,6 +18,7 @@
 #include <asm/bzimage.h>
 #include <asm/dom0_build.h>
 #include <asm/page.h>
+#include <asm/pv/mm.h>
 #include <asm/setup.h>
 
 /* Allow ring-3 access in long mode as guest cannot use ring 1 ... */
@@ -590,7 +591,7 @@ int __init dom0_construct_pv(struct domain *d,
         l3start = __va(mpt_alloc); mpt_alloc += PAGE_SIZE;
     }
     clear_page(l4tab);
-    init_guest_l4_table(l4tab, d, 0);
+    pv_init_guest_l4_table(l4tab, d, 0);
     v->arch.guest_table = pagetable_from_paddr(__pa(l4start));
     if ( is_pv_32bit_domain(d) )
         v->arch.guest_table_user = v->arch.guest_table;
