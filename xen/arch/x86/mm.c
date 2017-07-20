@@ -2695,14 +2695,14 @@ int vcpu_destroy_pagetables(struct vcpu *v)
     return rc != -EINTR ? rc : -ERESTART;
 }
 
-int new_guest_cr3(unsigned long mfn)
+int pv_new_guest_cr3(unsigned long mfn)
 {
     struct vcpu *curr = current;
-    struct domain *d = curr->domain;
+    struct domain *currd = curr->domain;
     int rc;
     unsigned long old_base_mfn;
 
-    if ( is_pv_32bit_domain(d) )
+    if ( is_pv_32bit_domain(currd) )
     {
         unsigned long gt_mfn = pagetable_get_pfn(curr->arch.guest_table);
         l4_pgentry_t *pl4e = map_domain_page(_mfn(gt_mfn));
@@ -2748,9 +2748,9 @@ int new_guest_cr3(unsigned long mfn)
         return 0;
     }
 
-    rc = paging_mode_refcounts(d)
-         ? (!get_page_from_pagenr(mfn, d) ? 0 : -EINVAL)
-         : get_page_and_type_from_pagenr(mfn, PGT_root_page_table, d, 0, 1);
+    rc = paging_mode_refcounts(currd)
+         ? (!get_page_from_pagenr(mfn, currd) ? 0 : -EINVAL)
+         : get_page_and_type_from_pagenr(mfn, PGT_root_page_table, currd, 0, 1);
     switch ( rc )
     {
     case 0:
@@ -2766,7 +2766,7 @@ int new_guest_cr3(unsigned long mfn)
 
     invalidate_shadow_ldt(curr, 0);
 
-    if ( !VM_ASSIST(d, m2p_strict) && !paging_mode_refcounts(d) )
+    if ( !VM_ASSIST(currd, m2p_strict) && !paging_mode_refcounts(currd) )
         fill_ro_mpt(mfn);
     curr->arch.guest_table = pagetable_from_pfn(mfn);
     update_cr3(curr);
@@ -2777,7 +2777,7 @@ int new_guest_cr3(unsigned long mfn)
     {
         struct page_info *page = mfn_to_page(old_base_mfn);
 
-        if ( paging_mode_refcounts(d) )
+        if ( paging_mode_refcounts(currd) )
             put_page(page);
         else
             switch ( rc = put_page_and_type_preemptible(page) )
@@ -3102,7 +3102,7 @@ long do_mmuext_op(
             else if ( unlikely(paging_mode_translate(currd)) )
                 rc = -EINVAL;
             else
-                rc = new_guest_cr3(op.arg1.mfn);
+                rc = pv_new_guest_cr3(op.arg1.mfn);
             break;
 
         case MMUEXT_NEW_USER_BASEPTR: {

@@ -94,7 +94,11 @@ void pv_init_guest_l4_table(l4_pgentry_t[], const struct domain *,
                             bool zap_ro_mpt);
 void pv_arch_init_memory(void);
 
+int pv_new_guest_cr3(unsigned long pfn);
+
 #else
+
+#include <xen/errno.h>
 
 static inline void pv_get_guest_eff_l1e(unsigned long addr,
                                         l1_pgentry_t *eff_l1e)
@@ -119,6 +123,9 @@ static inline void pv_init_guest_l4_table(l4_pgentry_t[],
                                           const struct domain *,
                                           bool zap_ro_mpt) {}
 static inline void pv_arch_init_memory(void) {}
+
+static inline int pv_new_guest_cr3(unsigned long pfn) { return -EINVAL; }
+
 #endif
 
 #endif /* __X86_PV_MM_H__ */

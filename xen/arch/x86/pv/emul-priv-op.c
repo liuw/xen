@@ -32,6 +32,7 @@
 #include <asm/hypercall.h>
 #include <asm/mc146818rtc.h>
 #include <asm/p2m.h>
+#include <asm/pv/mm.h>
 #include <asm/pv/traps.h>
 #include <asm/shared.h>
 #include <asm/traps.h>
@@ -768,7 +769,7 @@ static int priv_op_write_cr(unsigned int reg, unsigned long val,
         page = get_page_from_gfn(currd, gfn, NULL, P2M_ALLOC);
         if ( !page )
             break;
-        rc = new_guest_cr3(page_to_mfn(page));
+        rc = pv_new_guest_cr3(page_to_mfn(page));
         put_page(page);
 
         switch ( rc )
