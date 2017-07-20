@@ -6,13 +6,15 @@
 #include <asm/mem_paging.h>
 #include <asm/mem_sharing.h>
 
+#include <asm/pv/processor.h>
+
 int compat_set_gdt(XEN_GUEST_HANDLE_PARAM(uint) frame_list, unsigned int entries)
 {
     unsigned int i, nr_pages = (entries + 511) / 512;
     unsigned long frames[16];
     long ret;
 
-    /* Rechecked in set_gdt, but ensures a sane limit for copy_from_user(). */
+    /* Rechecked in pv_set_gdt, but ensures a sane limit for copy_from_user(). */
     if ( entries > FIRST_RESERVED_GDT_ENTRY )
         return -EINVAL;
 
@@ -31,7 +33,7 @@ int compat_set_gdt(XEN_GUEST_HANDLE_PARAM(uint) frame_list, unsigned int entries
 
     domain_lock(current->domain);
 
-    if ( (ret = set_gdt(current, frames, entries)) == 0 )
+    if ( (ret = pv_set_gdt(current, frames, entries)) == 0 )
         flush_tlb_local();
 
     domain_unlock(current->domain);
