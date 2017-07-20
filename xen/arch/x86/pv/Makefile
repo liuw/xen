@@ -6,6 +6,7 @@ obj-y += emul-inv-op.o
 obj-y += emul-mmio-op.o
 obj-y += emul-priv-op.o
 obj-y += emul-ptwr-op.o
+obj-y += grant_table.o
 obj-y += hypercall.o
 obj-y += iret.o
 obj-y += misc-hypercalls.o
