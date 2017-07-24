@@ -239,15 +239,6 @@ void copy_page_sse2(void *, const void *);
 #define __pfn_to_paddr(pfn) ((paddr_t)(pfn) << PAGE_SHIFT)
 #define __paddr_to_pfn(pa)  ((unsigned long)((pa) >> PAGE_SHIFT))
 
-
-/* Convert between machine frame numbers and spage-info structures. */
-#define __mfn_to_spage(mfn)  (spage_table + pfn_to_sdx(mfn))
-#define __spage_to_mfn(pg)   sdx_to_pfn((unsigned long)((pg) - spage_table))
-
-/* Convert between page-info structures and spage-info structures. */
-#define page_to_spage(page)  (spage_table+(((page)-frame_table)>>(SUPERPAGE_SHIFT-PAGE_SHIFT)))
-#define spage_to_page(spage)  (frame_table+(((spage)-spage_table)<<(SUPERPAGE_SHIFT-PAGE_SHIFT)))
-
 /*
  * We define non-underscored wrappers for above conversion functions. These are
  * overridden in various source files while underscored versions remain intact.

@@ -210,7 +210,7 @@ static inline bool guest_can_use_l2_superpages(const struct vcpu *v)
      * It's also used in the dummy PT for vcpus with CR0.PG cleared.
      */
     return (is_pv_vcpu(v)
-            ? opt_allow_superpage
+            ? false
             : (GUEST_PAGING_LEVELS != 2
                || !hvm_paging_enabled(v)
                || (v->arch.hvm_vcpu.guest_cr[4] & X86_CR4_PSE)));
