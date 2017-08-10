@@ -68,6 +68,8 @@ void passive_domain_destroy(struct vcpu *v);
 
 #else
 
+struct vcpu;
+
 static inline int passive_domain_do_rdmsr(unsigned int msr,
                                           uint64_t *msr_content)
 {
