@@ -1044,6 +1044,21 @@ static int cpu_smpboot_alloc(unsigned int cpu)
     return rc;
 }
 
+void __init cpu_smpboot_bsp(void)
+{
+    unsigned int cpu = smp_processor_id();
+    int rc = -ENOMEM;
+
+    if ( (per_cpu(stubs.addr, cpu) =
+          alloc_stub_page(cpu, &per_cpu(stubs, cpu).mfn)) == 0 )
+        goto err;
+
+    return;
+
+ err:
+    panic("Error preparing BSP smpboot data: %d", rc);
+}
+
 static int cpu_smpboot_callback(
     struct notifier_block *nfb, unsigned long action, void *hcpu)
 {

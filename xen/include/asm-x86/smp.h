@@ -55,6 +55,7 @@ int cpu_add(uint32_t apic_id, uint32_t acpi_id, uint32_t pxm);
 
 void __stop_this_cpu(void);
 
+void cpu_smpboot_bsp(void);
 long cpu_up_helper(void *data);
 long cpu_down_helper(void *data);
 
