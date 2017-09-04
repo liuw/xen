@@ -522,7 +522,6 @@ struct cmd_spec cmd_table[] = {
       "-F                      Run in the foreground.\n"
       "-p, --pidfile [FILE]    Write PID to pidfile when daemonizing.",
     },
-#ifdef LIBXL_HAVE_PSR_CMT
     { "psr-hwinfo",
       &main_psr_hwinfo, 0, 1,
       "Show hardware information for Platform Shared Resource",
@@ -549,8 +548,6 @@ struct cmd_spec cmd_table[] = {
       "\"total-mem-bandwidth\":     Show total memory bandwidth(KB/s)\n"
       "\"local-mem-bandwidth\":     Show local memory bandwidth(KB/s)\n",
     },
-#endif
-#ifdef LIBXL_HAVE_PSR_CAT
     { "psr-cat-set",
       &main_psr_cat_cbm_set, 0, 1,
       "Set cache capacity bitmasks(CBM) for a domain",
@@ -566,8 +563,6 @@ struct cmd_spec cmd_table[] = {
       "[options] <Domain>",
       "-l <level>        Specify the cache level to process, otherwise L3 cache is processed\n"
     },
-
-#endif
     { "usbctrl-attach",
       &main_usbctrl_attach, 0, 1,
       "Create a virtual USB controller for a domain",

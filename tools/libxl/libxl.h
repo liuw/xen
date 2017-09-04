@@ -2179,7 +2179,6 @@ bool libxl_ms_vm_genid_is_zero(const libxl_ms_vm_genid *id);
 void libxl_ms_vm_genid_copy(libxl_ctx *ctx, libxl_ms_vm_genid *dst,
                             const libxl_ms_vm_genid *src);
 
-#ifdef LIBXL_HAVE_PSR_CMT
 int libxl_psr_cmt_attach(libxl_ctx *ctx, uint32_t domid);
 int libxl_psr_cmt_detach(libxl_ctx *ctx, uint32_t domid);
 int libxl_psr_cmt_domain_attached(libxl_ctx *ctx, uint32_t domid);
@@ -2192,9 +2191,7 @@ int libxl_psr_cmt_get_cache_occupancy(libxl_ctx *ctx,
                                       uint32_t domid,
                                       uint32_t socketid,
                                       uint32_t *l3_cache_occupancy);
-#endif
 
-#ifdef LIBXL_HAVE_PSR_MBM
 int libxl_psr_cmt_type_supported(libxl_ctx *ctx, libxl_psr_cmt_type type);
 int libxl_psr_cmt_get_sample(libxl_ctx *ctx,
                              uint32_t domid,
@@ -2202,9 +2199,7 @@ int libxl_psr_cmt_get_sample(libxl_ctx *ctx,
                              uint64_t scope,
                              uint64_t *sample_r,
                              uint64_t *tsc_r);
-#endif
 
-#ifdef LIBXL_HAVE_PSR_CAT
 /*
  * Function to set a domain's cbm. It operates on a single or multiple
  * target(s) defined in 'target_map'. The definition of 'target_map' is
@@ -2232,7 +2227,6 @@ int libxl_psr_cat_get_info(libxl_ctx *ctx, libxl_psr_cat_info **info,
 int libxl_psr_cat_get_l3_info(libxl_ctx *ctx, libxl_psr_cat_info **info,
                               int *nr);
 void libxl_psr_cat_info_list_free(libxl_psr_cat_info *list, int nr);
-#endif
 
 /* misc */
 
