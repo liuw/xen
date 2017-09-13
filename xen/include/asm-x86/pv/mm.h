@@ -32,6 +32,11 @@ bool pv_map_ldt_shadow_page(unsigned int off);
 
 void pv_arch_init_memory(void);
 
+int pv_alloc_page_type(struct page_info *page, unsigned long type,
+                       int preemptible);
+int pv_free_page_type(struct page_info *page, unsigned long type,
+                      int preemptible);
+
 #else
 
 #include <xen/errno.h>
@@ -50,6 +55,13 @@ static inline void pv_destroy_gdt(struct vcpu *d) {}
 static inline bool pv_map_ldt_shadow_page(unsigned int off) { return false; }
 
 static inline void pv_arch_init_memory(void) {}
+
+static inline int pv_alloc_page_type(struct page_info *page, unsigned long type,
+                                     int preemptible)
+{ BUG(); return -EINVAL; }
+static inline int pv_free_page_type(struct page_info *page, unsigned long type,
+                                    int preemptible)
+{ BUG(); return -EINVAL; }
 
 #endif
 

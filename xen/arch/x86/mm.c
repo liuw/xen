@@ -1987,8 +1987,8 @@ static void get_page_light(struct page_info *page)
     while ( unlikely(y != x) );
 }
 
-static int alloc_page_type(struct page_info *page, unsigned long type,
-                           int preemptible)
+int pv_alloc_page_type(struct page_info *page, unsigned long type,
+                       int preemptible)
 {
     struct domain *owner = page_get_owner(page);
     int rc;
@@ -2017,7 +2017,7 @@ static int alloc_page_type(struct page_info *page, unsigned long type,
         rc = alloc_segdesc_page(page);
         break;
     default:
-        printk("Bad type in alloc_page_type %lx t=%" PRtype_info " c=%lx\n",
+        printk("Bad type in %s %lx t=%" PRtype_info " c=%lx\n", __func__,
                type, page->u.inuse.type_info,
                page->count_info);
         rc = -EINVAL;
@@ -2061,8 +2061,8 @@ static int alloc_page_type(struct page_info *page, unsigned long type,
 }
 
 
-int free_page_type(struct page_info *page, unsigned long type,
-                   int preemptible)
+int pv_free_page_type(struct page_info *page, unsigned long type,
+                      int preemptible)
 {
     struct domain *owner = page_get_owner(page);
     unsigned long gmfn;
@@ -2119,7 +2119,7 @@ int free_page_type(struct page_info *page, unsigned long type,
 static int __put_final_page_type(
     struct page_info *page, unsigned long type, int preemptible)
 {
-    int rc = free_page_type(page, type, preemptible);
+    int rc = pv_free_page_type(page, type, preemptible);
 
     /* No need for atomic update of type_info here: noone else updates it. */
     if ( rc == 0 )
@@ -2337,7 +2337,7 @@ static int __get_page_type(struct page_info *page, unsigned long type,
             page->nr_validated_ptes = 0;
             page->partial_pte = 0;
         }
-        rc = alloc_page_type(page, type, preemptible);
+        rc = pv_alloc_page_type(page, type, preemptible);
     }
 
     if ( (x & PGT_partial) && !(nx & PGT_partial) )

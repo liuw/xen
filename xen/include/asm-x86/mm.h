@@ -326,9 +326,6 @@ static inline void *__page_to_virt(const struct page_info *pg)
                     (PAGE_SIZE / (sizeof(*pg) & -sizeof(*pg))));
 }
 
-int free_page_type(struct page_info *page, unsigned long type,
-                   int preemptible);
-
 bool fill_ro_mpt(mfn_t mfn);
 void zap_ro_mpt(mfn_t mfn);
 
