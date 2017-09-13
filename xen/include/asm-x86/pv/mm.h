@@ -25,13 +25,23 @@
 
 int pv_ro_page_fault(unsigned long addr, struct cpu_user_regs *regs);
 
+long pv_set_gdt(struct vcpu *d, unsigned long *frames, unsigned int entries);
+void pv_destroy_gdt(struct vcpu *d);
+
 #else
+
+#include <xen/errno.h>
 
 static inline int pv_ro_page_fault(unsigned long addr,
                                    struct cpu_user_regs *regs)
 {
     return 0;
 }
+
+static inline long pv_set_gdt(struct vcpu *d, unsigned long *frames,
+                              unsigned int entries)
+{ return -EINVAL; }
+static inline void pv_destroy_gdt(struct vcpu *d) {}
 
 #endif
 

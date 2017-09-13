@@ -3858,7 +3858,7 @@ long do_update_va_mapping_otherdomain(unsigned long va, u64 val64,
  * Descriptor Tables
  */
 
-void destroy_gdt(struct vcpu *v)
+void pv_destroy_gdt(struct vcpu *v)
 {
     l1_pgentry_t *pl1e;
     unsigned int i;
@@ -3877,9 +3877,7 @@ void destroy_gdt(struct vcpu *v)
 }
 
 
-long set_gdt(struct vcpu *v,
-             unsigned long *frames,
-             unsigned int entries)
+long pv_set_gdt(struct vcpu *v, unsigned long *frames, unsigned int entries)
 {
     struct domain *d = v->domain;
     l1_pgentry_t *pl1e;
@@ -3906,7 +3904,7 @@ long set_gdt(struct vcpu *v,
     }
 
     /* Tear down the old GDT. */
-    destroy_gdt(v);
+    pv_destroy_gdt(v);
 
     /* Install the new GDT. */
     v->arch.pv_vcpu.gdt_ents = entries;
@@ -3945,7 +3943,7 @@ long do_set_gdt(XEN_GUEST_HANDLE_PARAM(xen_ulong_t) frame_list,
 
     domain_lock(curr->domain);
 
-    if ( (ret = set_gdt(curr, frames, entries)) == 0 )
+    if ( (ret = pv_set_gdt(curr, frames, entries)) == 0 )
         flush_tlb_local();
 
     domain_unlock(curr->domain);
