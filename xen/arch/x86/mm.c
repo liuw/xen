@@ -154,13 +154,6 @@ struct rangeset *__read_mostly mmio_ro_ranges;
 
 uint32_t __read_mostly base_disallow_mask;
 
-#define L2_DISALLOW_MASK base_disallow_mask
-
-#define l3_disallow_mask(d) (!is_pv_32bit_domain(d) ? \
-                             base_disallow_mask : 0xFFFFF198U)
-
-#define L4_DISALLOW_MASK (base_disallow_mask)
-
 static s8 __read_mostly opt_mmio_relax;
 
 static int __init parse_mmio_relax(const char *s)
@@ -545,9 +538,8 @@ static int alloc_segdesc_page(struct page_info *page)
     return i == 512 ? 0 : -EINVAL;
 }
 
-static int get_page_and_type_from_mfn(
-    mfn_t mfn, unsigned long type, struct domain *d,
-    int partial, int preemptible)
+int get_page_and_type_from_mfn(mfn_t mfn, unsigned long type, struct domain *d,
+                               int partial, int preemptible)
 {
     struct page_info *page = mfn_to_page(mfn);
     int rc;
@@ -930,7 +922,7 @@ get_page_from_l1e(
  *  <0 => error code
  */
 define_get_linear_pagetable(l2);
-static int
+int
 get_page_from_l2e(
     l2_pgentry_t l2e, unsigned long pfn, struct domain *d)
 {
@@ -966,7 +958,7 @@ get_page_from_l2e(
  *  <0 => error code
  */
 define_get_linear_pagetable(l3);
-static int
+int
 get_page_from_l3e(
     l3_pgentry_t l3e, unsigned long pfn, struct domain *d, int partial)
 {
@@ -999,7 +991,7 @@ get_page_from_l3e(
  *  <0 => error code
  */
 define_get_linear_pagetable(l4);
-static int
+int
 get_page_from_l4e(
     l4_pgentry_t l4e, unsigned long pfn, struct domain *d, int partial)
 {
@@ -1087,7 +1079,7 @@ void put_page_from_l1e(l1_pgentry_t l1e, struct domain *l1e_owner)
  * NB. Virtual address 'l2e' maps to a machine address within frame 'pfn'.
  * Note also that this automatically deals correctly with linear p.t.'s.
  */
-static int put_page_from_l2e(l2_pgentry_t l2e, unsigned long pfn)
+int put_page_from_l2e(l2_pgentry_t l2e, unsigned long pfn)
 {
     if ( !(l2e_get_flags(l2e) & _PAGE_PRESENT) || (l2e_get_pfn(l2e) == pfn) )
         return 1;
@@ -1105,8 +1097,8 @@ static int put_page_from_l2e(l2_pgentry_t l2e, unsigned long pfn)
     return 0;
 }
 
-static int put_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn,
-                             int partial, bool defer)
+int put_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn, int partial,
+                      bool defer)
 {
     struct page_info *pg;
 
@@ -1143,8 +1135,8 @@ static int put_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn,
     return put_page_and_type_preemptible(pg);
 }
 
-static int put_page_from_l4e(l4_pgentry_t l4e, unsigned long pfn,
-                             int partial, bool defer)
+int put_page_from_l4e(l4_pgentry_t l4e, unsigned long pfn, int partial,
+                      bool defer)
 {
     if ( (l4e_get_flags(l4e) & _PAGE_PRESENT) &&
          (l4e_get_pfn(l4e) != pfn) )
@@ -1206,7 +1198,7 @@ static int alloc_l1_table(struct page_info *page)
     return ret;
 }
 
-static int create_pae_xen_mappings(struct domain *d, l3_pgentry_t *pl3e)
+int create_pae_xen_mappings(struct domain *d, l3_pgentry_t *pl3e)
 {
     struct page_info *page;
     l3_pgentry_t     l3e3;

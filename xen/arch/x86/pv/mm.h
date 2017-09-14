@@ -1,12 +1,21 @@
 #ifndef __PV_MM_H__
 #define __PV_MM_H__
 
+#define L2_DISALLOW_MASK base_disallow_mask
+
+#define l3_disallow_mask(d) (!is_pv_32bit_domain(d) ? \
+                             base_disallow_mask : 0xFFFFF198U)
+
+#define L4_DISALLOW_MASK (base_disallow_mask)
+
 l1_pgentry_t *map_guest_l1e(unsigned long linear, mfn_t *gl1mfn);
 
 void init_guest_l4_table(l4_pgentry_t l4tab[], const struct domain *d,
                          bool zap_ro_mpt);
 
 int new_guest_cr3(mfn_t mfn);
+
+int create_pae_xen_mappings(struct domain *d, l3_pgentry_t *pl3e);
 
 /* Read a PV guest's l1e that maps this linear address. */
 static inline l1_pgentry_t guest_get_eff_l1e(unsigned long linear)
@@ -152,4 +161,16 @@ static inline l4_pgentry_t adjust_guest_l4e(l4_pgentry_t l4e,
     return l4e;
 }
 
+int get_page_from_l2e(l2_pgentry_t l2e, unsigned long pfn, struct domain *d);
+int get_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn, struct domain *d,
+                      int partial);
+int get_page_from_l4e(l4_pgentry_t l4e, unsigned long pfn, struct domain *d,
+                      int partial);
+int put_page_from_l2e(l2_pgentry_t l2e, unsigned long pfn);
+int put_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn, int partial,
+                      bool defer);
+int put_page_from_l4e(l4_pgentry_t l4e, unsigned long pfn, int partial,
+                      bool defer);
+int get_page_and_type_from_mfn(mfn_t mfn, unsigned long type, struct domain *d,
+                               int partial, int preemptible);
 #endif /* __PV_MM_H__ */
