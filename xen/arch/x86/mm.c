@@ -127,8 +127,6 @@
 #include <asm/pv/grant_table.h>
 #include <asm/pv/mm.h>
 
-#include "pv/mm.h"
-
 /* Override macros from asm/page.h to make them work with mfn_t */
 #undef mfn_to_page
 #define mfn_to_page(mfn) __mfn_to_page(mfn_x(mfn))
