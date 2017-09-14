@@ -1005,6 +1005,41 @@ int pv_free_page_type(struct page_info *page, unsigned long type,
     return rc;
 }
 
+void pv_invalidate_shadow_ldt(struct vcpu *v, bool flush)
+{
+    l1_pgentry_t *pl1e;
+    unsigned int i;
+    struct page_info *page;
+
+    BUG_ON(unlikely(in_irq()));
+
+    spin_lock(&v->arch.pv_vcpu.shadow_ldt_lock);
+
+    if ( v->arch.pv_vcpu.shadow_ldt_mapcnt == 0 )
+        goto out;
+
+    v->arch.pv_vcpu.shadow_ldt_mapcnt = 0;
+    pl1e = pv_ldt_ptes(v);
+
+    for ( i = 0; i < 16; i++ )
+    {
+        if ( !(l1e_get_flags(pl1e[i]) & _PAGE_PRESENT) )
+            continue;
+        page = l1e_get_page(pl1e[i]);
+        l1e_write(&pl1e[i], l1e_empty());
+        ASSERT_PAGE_IS_TYPE(page, PGT_seg_desc_page);
+        ASSERT_PAGE_IS_DOMAIN(page, v->domain);
+        put_page_and_type(page);
+    }
+
+    /* Rid TLBs of stale mappings (guest mappings and shadow mappings). */
+    if ( flush )
+        flush_tlb_mask(v->vcpu_dirty_cpumask);
+
+ out:
+    spin_unlock(&v->arch.pv_vcpu.shadow_ldt_lock);
+}
+
 /*
  * Local variables:
  * mode: C

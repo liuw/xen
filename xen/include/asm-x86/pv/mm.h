@@ -37,6 +37,8 @@ int pv_alloc_page_type(struct page_info *page, unsigned long type,
 int pv_free_page_type(struct page_info *page, unsigned long type,
                       int preemptible);
 
+void pv_invalidate_shadow_ldt(struct vcpu *v, bool flush);
+
 #else
 
 #include <xen/errno.h>
@@ -62,6 +64,8 @@ static inline int pv_alloc_page_type(struct page_info *page, unsigned long type,
 static inline int pv_free_page_type(struct page_info *page, unsigned long type,
                                     int preemptible)
 { BUG(); return -EINVAL; }
+
+static inline void pv_invalidate_shadow_ldt(struct vcpu *v, bool flush) {}
 
 #endif
 

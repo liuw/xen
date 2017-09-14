@@ -487,42 +487,6 @@ static inline void page_set_tlbflush_timestamp(struct page_info *page)
 const char __section(".bss.page_aligned.const") __aligned(PAGE_SIZE)
     zero_page[PAGE_SIZE];
 
-static void invalidate_shadow_ldt(struct vcpu *v, int flush)
-{
-    l1_pgentry_t *pl1e;
-    unsigned int i;
-    struct page_info *page;
-
-    BUG_ON(unlikely(in_irq()));
-
-    spin_lock(&v->arch.pv_vcpu.shadow_ldt_lock);
-
-    if ( v->arch.pv_vcpu.shadow_ldt_mapcnt == 0 )
-        goto out;
-
-    v->arch.pv_vcpu.shadow_ldt_mapcnt = 0;
-    pl1e = pv_ldt_ptes(v);
-
-    for ( i = 0; i < 16; i++ )
-    {
-        if ( !(l1e_get_flags(pl1e[i]) & _PAGE_PRESENT) )
-            continue;
-        page = l1e_get_page(pl1e[i]);
-        l1e_write(&pl1e[i], l1e_empty());
-        ASSERT_PAGE_IS_TYPE(page, PGT_seg_desc_page);
-        ASSERT_PAGE_IS_DOMAIN(page, v->domain);
-        put_page_and_type(page);
-    }
-
-    /* Rid TLBs of stale mappings (guest mappings and shadow mappings). */
-    if ( flush )
-        flush_tlb_mask(v->vcpu_dirty_cpumask);
-
- out:
-    spin_unlock(&v->arch.pv_vcpu.shadow_ldt_lock);
-}
-
-
 bool is_iomem_page(mfn_t mfn)
 {
     struct page_info *page;
@@ -864,7 +828,7 @@ void put_page_from_l1e(l1_pgentry_t l1e, struct domain *l1e_owner)
              (l1e_owner == pg_owner) )
         {
             for_each_vcpu ( pg_owner, v )
-                invalidate_shadow_ldt(v, 1);
+                pv_invalidate_shadow_ldt(v, 1);
         }
         put_page(page);
     }
@@ -1670,7 +1634,7 @@ int new_guest_cr3(mfn_t mfn)
             return rc;
         }
 
-        invalidate_shadow_ldt(curr, 0);
+        pv_invalidate_shadow_ldt(curr, 0);
         write_ptbase(curr);
 
         return 0;
@@ -1708,7 +1672,7 @@ int new_guest_cr3(mfn_t mfn)
         return rc;
     }
 
-    invalidate_shadow_ldt(curr, 0);
+    pv_invalidate_shadow_ldt(curr, 0);
 
     if ( !VM_ASSIST(d, m2p_strict) && !paging_mode_refcounts(d) )
         fill_ro_mpt(mfn);
@@ -2209,7 +2173,7 @@ long do_mmuext_op(
             else if ( (curr->arch.pv_vcpu.ldt_ents != ents) ||
                       (curr->arch.pv_vcpu.ldt_base != ptr) )
             {
-                invalidate_shadow_ldt(curr, 0);
+                pv_invalidate_shadow_ldt(curr, 0);
                 flush_tlb_local();
                 curr->arch.pv_vcpu.ldt_base = ptr;
                 curr->arch.pv_vcpu.ldt_ents = ents;
