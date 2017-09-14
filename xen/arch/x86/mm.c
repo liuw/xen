@@ -1955,7 +1955,7 @@ int get_page(struct page_info *page, struct domain *domain)
  *   acquired reference again.
  * Due to get_page() reserving one reference, this call cannot fail.
  */
-static void get_page_light(struct page_info *page)
+void get_page_light(struct page_info *page)
 {
     unsigned long x, nx, y = page->count_info;
 
