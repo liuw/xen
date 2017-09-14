@@ -10,6 +10,7 @@ obj-y += hypercall.o
 obj-y += iret.o
 obj-y += misc-hypercalls.o
 obj-y += mm.o
+obj-y += mm-hypercalls.o
 obj-y += ro-page-fault.o
 obj-y += traps.o
 
