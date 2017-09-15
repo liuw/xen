@@ -26,7 +26,7 @@
 #include "decode.h"
 
 static void update_dabt(struct hsr_dabt *dabt, int reg,
-                        uint8_t size, bool_t sign)
+                        uint8_t size, bool sign)
 {
     dabt->reg = reg;
     dabt->size = size;
@@ -47,8 +47,8 @@ static int decode_thumb2(register_t pc, struct hsr_dabt *dabt, uint16_t hw1)
     {
     case 12:
     {
-        bool_t sign = !!(hw1 & (1 << 8));
-        bool_t load = !!(hw1 & (1 << 4));
+        bool sign = (hw1 & (1u << 8));
+        bool load = (hw1 & (1u << 4));
 
         if ( (hw1 & 0x0110) == 0x0100 )
             /* NEON instruction */
