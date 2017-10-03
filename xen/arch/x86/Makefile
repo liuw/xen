@@ -69,6 +69,8 @@ obj-y += hpet.o
 obj-y += vm_event.o
 obj-y += xstate.o
 
+noubsan-y += setup.o
+
 x86_emulate.o: x86_emulate/x86_emulate.c x86_emulate/x86_emulate.h
 
 efi-y := $(shell if [ ! -r $(BASEDIR)/include/xen/compile.h -o \

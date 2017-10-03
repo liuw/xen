@@ -210,6 +210,9 @@ struct vcpu
     bool             hcall_compat;
 #endif
 
+#ifdef CONFIG_UBSAN
+    int              in_ubsan;
+#endif
 
     /*
      * > 0: a single port is being polled;
