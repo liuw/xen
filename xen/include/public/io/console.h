@@ -40,7 +40,8 @@ struct xencons_interface {
     XENCONS_RING_IDX out_cons, out_prod;
 };
 
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) && \
+    defined(XEN_WANT_FLEX_CONSOLE_RING)
 DEFINE_XEN_FLEX_RING(xencons);
 #endif
 
