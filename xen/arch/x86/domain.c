@@ -1905,7 +1905,7 @@ static int relinquish_memory(
             if ( likely(y == x) )
             {
                 /* No need for atomic update of type_info here: noone else updates it. */
-                switch ( ret = free_page_type(page, x, 1) )
+                switch ( ret = pv_free_page_type(page, x, true) )
                 {
                 case 0:
                     break;

@@ -31,6 +31,10 @@ void pv_destroy_gdt(struct vcpu *v);
 bool pv_map_ldt_shadow_page(unsigned int off);
 bool pv_destroy_ldt(struct vcpu *v);
 
+int pv_alloc_page_type(struct page_info *page, unsigned long type,
+                       bool preemptible);
+int pv_free_page_type(struct page_info *page, unsigned long type,
+                      bool preemptible);
 #else
 
 #include <xen/errno.h>
@@ -51,6 +55,13 @@ static inline void pv_destroy_gdt(struct vcpu *v) { ASSERT_UNREACHABLE(); }
 static inline bool pv_map_ldt_shadow_page(unsigned int off) { return false; }
 static inline bool pv_destroy_ldt(struct vcpu *v)
 { ASSERT_UNREACHABLE(); return false; }
+
+static inline int pv_alloc_page_type(struct page_info *page, unsigned long type,
+                                     bool preemptible)
+{ ASSERT_UNREACHABLE(); return -EINVAL; }
+static inline int pv_free_page_type(struct page_info *page, unsigned long type,
+                                    bool preemptible)
+{ ASSERT_UNREACHABLE(); return -EINVAL; }
 
 #endif
 
