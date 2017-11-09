@@ -153,24 +153,7 @@ bool __read_mostly machine_to_phys_mapping_valid;
 
 struct rangeset *__read_mostly mmio_ro_ranges;
 
-static uint32_t base_disallow_mask;
-/* Global bit is allowed to be set on L1 PTEs. Intended for user mappings. */
-#define L1_DISALLOW_MASK ((base_disallow_mask | _PAGE_GNTTAB) & ~_PAGE_GLOBAL)
-
-#define L2_DISALLOW_MASK base_disallow_mask
-
-#define l3_disallow_mask(d) (!is_pv_32bit_domain(d) ? \
-                             base_disallow_mask : 0xFFFFF198U)
-
-#define L4_DISALLOW_MASK (base_disallow_mask)
-
-#define l1_disallow_mask(d)                                     \
-    ((d != dom_io) &&                                           \
-     (rangeset_is_empty((d)->iomem_caps) &&                     \
-      rangeset_is_empty((d)->arch.ioport_caps) &&               \
-      !has_arch_pdevs(d) &&                                     \
-      is_pv_domain(d)) ?                                        \
-     L1_DISALLOW_MASK : (L1_DISALLOW_MASK & ~PAGE_CACHE_ATTRS))
+uint32_t base_disallow_mask;
 
 static s8 __read_mostly opt_mmio_relax;
 

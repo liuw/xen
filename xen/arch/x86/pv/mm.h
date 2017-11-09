@@ -1,6 +1,25 @@
 #ifndef __PV_MM_H__
 #define __PV_MM_H__
 
+extern uint32_t base_disallow_mask;
+/* Global bit is allowed to be set on L1 PTEs. Intended for user mappings. */
+#define L1_DISALLOW_MASK ((base_disallow_mask | _PAGE_GNTTAB) & ~_PAGE_GLOBAL)
+
+#define L2_DISALLOW_MASK base_disallow_mask
+
+#define l3_disallow_mask(d) (!is_pv_32bit_domain(d) ? \
+                             base_disallow_mask : 0xFFFFF198U)
+
+#define L4_DISALLOW_MASK (base_disallow_mask)
+
+#define l1_disallow_mask(d)                                     \
+    ((d != dom_io) &&                                           \
+     (rangeset_is_empty((d)->iomem_caps) &&                     \
+      rangeset_is_empty((d)->arch.ioport_caps) &&               \
+      !has_arch_pdevs(d) &&                                     \
+      is_pv_domain(d)) ?                                        \
+     L1_DISALLOW_MASK : (L1_DISALLOW_MASK & ~PAGE_CACHE_ATTRS))
+
 l1_pgentry_t *map_guest_l1e(unsigned long linear, mfn_t *gl1mfn);
 
 int new_guest_cr3(mfn_t mfn);
