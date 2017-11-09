@@ -521,7 +521,7 @@ void update_cr3(struct vcpu *v)
     make_cr3(v, cr3_mfn);
 }
 
-static inline void set_tlbflush_timestamp(struct page_info *page)
+void set_tlbflush_timestamp(struct page_info *page)
 {
     /*
      * Record TLB information for flush later. We do not stamp page tables

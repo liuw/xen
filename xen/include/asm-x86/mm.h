@@ -628,4 +628,6 @@ static inline bool arch_mfn_in_directmap(unsigned long mfn)
     return mfn <= (virt_to_mfn(eva - 1) + 1);
 }
 
+void set_tlbflush_timestamp(struct page_info *page);
+
 #endif /* __ASM_X86_MM_H__ */
