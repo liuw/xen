@@ -831,7 +831,8 @@ static int print_mmio_emul_range(unsigned long s, unsigned long e, void *arg)
  */
 int
 get_page_from_l1e(
-    l1_pgentry_t l1e, struct domain *l1e_owner, struct domain *pg_owner)
+    l1_pgentry_t l1e, struct domain *l1e_owner, struct domain *pg_owner,
+    uint32_t disallow_mask)
 {
     unsigned long mfn = l1e_get_pfn(l1e);
     struct page_info *page = mfn_to_page(_mfn(mfn));
@@ -843,10 +844,9 @@ get_page_from_l1e(
     if ( !(l1f & _PAGE_PRESENT) )
         return 0;
 
-    if ( unlikely(l1f & l1_disallow_mask(l1e_owner)) )
+    if ( unlikely(l1f & disallow_mask) )
     {
-        gdprintk(XENLOG_WARNING, "Bad L1 flags %x\n",
-                 l1f & l1_disallow_mask(l1e_owner));
+        gdprintk(XENLOG_WARNING, "Bad L1 flags %x\n", l1f & disallow_mask);
         return -EINVAL;
     }
 
@@ -1318,7 +1318,7 @@ static int alloc_l1_table(struct page_info *page)
 
     for ( i = 0; i < L1_PAGETABLE_ENTRIES; i++ )
     {
-        switch ( ret = get_page_from_l1e(pl1e[i], d, d) )
+        switch ( ret = get_page_from_l1e(pl1e[i], d, d, l1_disallow_mask(d)) )
         {
         default:
             goto fail;
@@ -1957,7 +1957,8 @@ static int mod_l1_entry(l1_pgentry_t *pl1e, l1_pgentry_t nl1e,
             return rc ? 0 : -EBUSY;
         }
 
-        switch ( rc = get_page_from_l1e(nl1e, pt_dom, pg_dom) )
+        switch ( rc = get_page_from_l1e(nl1e, pt_dom, pg_dom,
+                                        l1_disallow_mask(pt_dom)) )
         {
         default:
             if ( page )

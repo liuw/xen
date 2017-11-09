@@ -858,13 +858,21 @@ shadow_get_page_from_l1e(shadow_l1e_t sl1e, struct domain *d, p2m_type_t type)
     int res;
     mfn_t mfn;
     struct domain *owner;
+    /* The disallow mask is taken from arch/x86/mm.c for HVM guest */
+    uint32_t disallow_mask =
+        ~(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED |
+          _PAGE_DIRTY | _PAGE_AVAIL | _PAGE_AVAIL_HIGH | _PAGE_NX);
 
+    disallow_mask = (disallow_mask | _PAGE_GNTTAB) & ~_PAGE_GLOBAL;
+    disallow_mask &= ~PAGE_CACHE_ATTRS;
+
+    ASSERT(is_hvm_domain(d));
     ASSERT(!sh_l1e_is_magic(sl1e));
 
     if ( !shadow_mode_refcounts(d) )
         return 1;
 
-    res = get_page_from_l1e(sl1e, d, d);
+    res = get_page_from_l1e(sl1e, d, d, disallow_mask);
 
     // If a privileged domain is attempting to install a map of a page it does
     // not own, we let it succeed anyway.
@@ -877,7 +885,7 @@ shadow_get_page_from_l1e(shadow_l1e_t sl1e, struct domain *d, p2m_type_t type)
     {
         res = xsm_priv_mapping(XSM_TARGET, d, owner);
         if ( !res ) {
-            res = get_page_from_l1e(sl1e, d, owner);
+            res = get_page_from_l1e(sl1e, d, owner, disallow_mask);
             SHADOW_PRINTK("privileged domain %d installs map of mfn %"PRI_mfn" "
                            "which is owned by d%d: %s\n",
                            d->domain_id, mfn_x(mfn), owner->domain_id,
@@ -896,7 +904,8 @@ shadow_get_page_from_l1e(shadow_l1e_t sl1e, struct domain *d, p2m_type_t type)
            we can just grab a reference directly. */
         mfn = shadow_l1e_get_mfn(sl1e);
         if ( mfn_valid(mfn) )
-            res = get_page_from_l1e(sl1e, d, page_get_owner(mfn_to_page(mfn)));
+            res = get_page_from_l1e(sl1e, d, page_get_owner(mfn_to_page(mfn)),
+                                    disallow_mask);
     }
 
     if ( unlikely(res < 0) )

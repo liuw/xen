@@ -127,7 +127,7 @@ static int ptwr_emulated_update(unsigned long addr, paddr_t old, paddr_t val,
 
     /* Check the new PTE. */
     nl1e = l1e_from_intpte(val);
-    switch ( ret = get_page_from_l1e(nl1e, d, d) )
+    switch ( ret = get_page_from_l1e(nl1e, d, d, l1_disallow_mask(d)) )
     {
     default:
         if ( is_pv_32bit_domain(d) && (bytes == 4) && (unaligned_addr & 4) &&

@@ -376,7 +376,8 @@ int  put_page_type_preemptible(struct page_info *page);
 int  get_page_type_preemptible(struct page_info *page, unsigned long type);
 int  put_old_guest_table(struct vcpu *);
 int  get_page_from_l1e(
-    l1_pgentry_t l1e, struct domain *l1e_owner, struct domain *pg_owner);
+    l1_pgentry_t l1e, struct domain *l1e_owner, struct domain *pg_owner,
+    uint32_t disallow_mask);
 void put_page_from_l1e(l1_pgentry_t l1e, struct domain *l1e_owner);
 
 static inline struct page_info *get_page_from_mfn(mfn_t mfn, struct domain *d)
