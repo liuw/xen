@@ -409,4 +409,16 @@ static always_inline void stac(void)
 #define REX64_PREFIX "rex64/"
 #endif
 
+#define ELFNOTE(name, type, desc)           \
+    .pushsection .note.name               ; \
+    .align 4                              ; \
+    .long 2f - 1f       /* namesz */      ; \
+    .long 4f - 3f       /* descsz */      ; \
+    .long type          /* type   */      ; \
+1:.asciz #name          /* name   */      ; \
+2:.align 4                                ; \
+3:desc                  /* desc   */      ; \
+4:.align 4                                ; \
+    .popsection
+
 #endif /* __X86_ASM_DEFNS_H__ */
