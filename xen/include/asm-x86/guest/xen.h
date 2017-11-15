@@ -21,17 +21,27 @@
 
 #include <xen/types.h>
 
+#include <asm/e820.h>
+#include <asm/fixmap.h>
+
+#define XEN_shared_info ((struct shared_info *)fix_to_virt(FIX_XEN_SHARED_INFO))
+
 #ifdef CONFIG_XEN_GUEST
 
 extern bool xen_guest;
 
 void probe_hypervisor(void);
+void hypervisor_early_setup(struct e820map *e820);
 
 #else
 
 #define xen_guest 0
 
 static inline void probe_hypervisor(void) {};
+static inline void hypervisor_early_setup(struct e820map *e820)
+{
+    ASSERT_UNREACHABLE();
+};
 
 #endif /* CONFIG_XEN_GUEST */
 #endif /* __X86_GUEST_XEN_H__ */

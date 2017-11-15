@@ -72,6 +72,30 @@ void __init probe_hypervisor(void)
     xen_guest = true;
 }
 
+static void map_shared_info(struct e820map *e820)
+{
+    paddr_t frame = 0xff000000; /* TODO: Hardcoded beside magic frames. */
+    struct xen_add_to_physmap xatp = {
+        .domid = DOMID_SELF,
+        .idx = 0,
+        .space = XENMAPSPACE_shared_info,
+        .gpfn = frame >> PAGE_SHIFT,
+    };
+
+    if ( !e820_add_range(e820, frame, frame + PAGE_SIZE, E820_RESERVED) )
+        panic("Failed to reserve shared_info range");
+
+    if ( xen_hypercall_memory_op(XENMEM_add_to_physmap, &xatp) )
+        panic("Failed to map shared_info page");
+
+    set_fixmap(FIX_XEN_SHARED_INFO, frame);
+}
+
+void __init hypervisor_early_setup(struct e820map *e820)
+{
+    map_shared_info(e820);
+}
+
 /*
  * Local variables:
  * mode: C
