@@ -29,6 +29,7 @@
 #include <asm/mpspec.h>
 #include <asm/processor.h>
 #include <asm/fixmap.h>
+#include <asm/guest.h>
 #include <asm/mc146818rtc.h>
 #include <asm/div64.h>
 #include <asm/acpi.h>
@@ -525,6 +526,96 @@ static struct platform_timesource __initdata plt_tsc =
     .init = init_tsc,
 };
 
+#ifdef CONFIG_XEN_GUEST
+/************************************************************
+ * PLATFORM TIMER 5: XEN PV CLOCK SOURCE
+ *
+ * Xen clock source is a variant of TSC source.
+ */
+
+static u64 xen_timer_cpu_frequency(void)
+{
+    struct vcpu_time_info *info = &XEN_shared_info->vcpu_info[0].time;
+    u64 freq;
+
+    freq = 1000000000ULL << 32;
+    do_div(freq, info->tsc_to_system_mul);
+    if ( info->tsc_shift < 0 )
+        freq <<= -info->tsc_shift;
+    else
+        freq >>= info->tsc_shift;
+
+    return freq;
+}
+
+static s64 __init init_xen_timer(struct platform_timesource *pts)
+{
+    if ( !xen_guest )
+        return 0;
+
+    pts->frequency = xen_timer_cpu_frequency();
+
+    return pts->frequency;
+}
+
+static always_inline
+u64 __read_cycle(const struct vcpu_time_info *info, u64 tsc)
+{
+    u64 delta = tsc - info->tsc_timestamp;
+    struct time_scale ts = {
+        .shift    = info->tsc_shift,
+        .mul_frac = info->tsc_to_system_mul,
+    };
+    u64 offset = scale_delta(delta, &ts);
+
+    return info->system_time + offset;
+}
+
+static u64 last_value;
+static u64 read_xen_timer(void)
+{
+    struct vcpu_time_info *info;
+    unsigned int cpu = smp_processor_id();
+    u32 version;
+    u64 ret;
+    u64 last;
+
+    /* TODO: lift this restriction */
+    ASSERT(cpu < XEN_LEGACY_MAX_VCPUS);
+    info = &XEN_shared_info->vcpu_info[cpu].time;
+
+    do {
+        version = info->version & ~1;
+        /* Make sure version is read before the data */
+        smp_rmb();
+
+        ret = __read_cycle(info, rdtsc_ordered());
+        /* Ignore fancy flags for now */
+
+        /* Make sure version is reread after the data */
+        smp_rmb();
+    } while ( unlikely(version != info->version) );
+
+    /* Maintain a monotonic global value */
+    do {
+        last = read_atomic(&last_value);
+        if ( ret < last )
+            return last;
+    } while ( unlikely(cmpxchg(&last_value, last, ret) != last) );
+
+    return ret;
+}
+
+static struct platform_timesource __initdata plt_xen_timer =
+{
+    .id = "xen",
+    .name = "XEN PV CLOCK",
+    .read_counter = read_xen_timer,
+    .init = init_xen_timer,
+    .counter_bits = 63,
+};
+#endif
+
 /************************************************************
  * GENERIC PLATFORM TIMER INFRASTRUCTURE
  */
@@ -672,6 +763,9 @@ static s64 __init try_platform_timer(struct platform_timesource *pts)
 static u64 __init init_platform_timer(void)
 {
     static struct platform_timesource * __initdata plt_timers[] = {
+#ifdef CONFIG_XEN_GUEST
+        &plt_xen_timer,
+#endif
         &plt_hpet, &plt_pmtimer, &plt_pit
     };
 
