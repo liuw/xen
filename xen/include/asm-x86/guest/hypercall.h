@@ -19,6 +19,11 @@
 #ifndef __X86_XEN_HYPERCALL_H__
 #define __X86_XEN_HYPERCALL_H__
 
+#include <xen/types.h>
+
+#include <public/xen.h>
+#include <public/sched.h>
+
 #ifdef CONFIG_XEN_GUEST
 
 /*
@@ -77,6 +82,30 @@
             : "memory" );                                               \
         (type)res;                                                      \
     })
+
+/*
+ * Primitive Hypercall wrappers
+ */
+static inline long xen_hypercall_sched_op(unsigned int cmd, void *arg)
+{
+    return _hypercall64_2(long, __HYPERVISOR_sched_op, cmd, arg);
+}
+
+/*
+ * Higher level hypercall helpers
+ */
+static inline long xen_hypercall_shutdown(unsigned int reason)
+{
+    return xen_hypercall_sched_op(SCHEDOP_shutdown, &reason);
+}
+
+#else /* CONFIG_XEN_GUEST */
+
+static inline long xen_hypercall_shutdown(unsigned int reason)
+{
+    ASSERT_UNREACHABLE();
+    return 0;
+}
 
 #endif /* CONFIG_XEN_GUEST */
 #endif /* __X86_XEN_HYPERCALL_H__ */
