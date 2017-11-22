@@ -39,8 +39,8 @@ dist: install
 
 build install:: include/config/auto.conf
 
-.PHONY: build install uninstall clean distclean cscope TAGS tags MAP gtags tests
-build install uninstall debug clean distclean cscope TAGS tags MAP gtags tests::
+.PHONY: build install uninstall clean distclean cscope TAGS tags MAP gtags tests install-shim
+build install uninstall debug clean distclean cscope TAGS tags MAP gtags tests install-shim::
 ifneq ($(XEN_TARGET_ARCH),x86_32)
 	$(MAKE) -f Rules.mk _$@
 else
@@ -79,6 +79,10 @@ _install: $(TARGET)$(CONFIG_XEN_INSTALL_SUFFIX)
 			echo 'EFI installation only partially done (EFI_VENDOR not set)' >&2; \
 		fi; \
 	fi
+
+.PHONY: _install-shim
+_install-shim: build
+	$(INSTALL_DATA) $(TARGET)-shim $(DESTDIR)
 
 .PHONY: _tests
 _tests:
