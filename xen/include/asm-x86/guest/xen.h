@@ -32,6 +32,7 @@ extern bool xen_guest;
 
 void probe_hypervisor(void);
 void hypervisor_early_setup(struct e820map *e820);
+void hypervisor_ap_setup(void);
 
 #else
 
@@ -39,6 +40,10 @@ void hypervisor_early_setup(struct e820map *e820);
 
 static inline void probe_hypervisor(void) {};
 static inline void hypervisor_early_setup(struct e820map *e820)
+{
+    ASSERT_UNREACHABLE();
+};
+static inline void hypervisor_ap_setup(void)
 {
     ASSERT_UNREACHABLE();
 };

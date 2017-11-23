@@ -23,6 +23,7 @@
 
 #include <public/xen.h>
 #include <public/sched.h>
+#include <public/hvm/hvm_op.h>
 
 #ifdef CONFIG_XEN_GUEST
 
@@ -96,6 +97,11 @@ static inline long xen_hypercall_memory_op(unsigned int cmd, void *arg)
     return _hypercall64_2(long, __HYPERVISOR_memory_op, cmd, arg);
 }
 
+static inline long xen_hypercall_hvm_op(unsigned int op, void *arg)
+{
+    return _hypercall64_2(long, __HYPERVISOR_hvm_op, op, arg);
+}
+
 /*
  * Higher level hypercall helpers
  */
@@ -109,6 +115,17 @@ static inline void xen_hypercall_console_write(
 static inline long xen_hypercall_shutdown(unsigned int reason)
 {
     return xen_hypercall_sched_op(SCHEDOP_shutdown, &reason);
+}
+
+static inline long xen_hypercall_set_evtchn_upcall_vector(
+    unsigned int cpu, unsigned int vector)
+{
+    struct xen_hvm_evtchn_upcall_vector a = {
+        .vcpu = cpu,
+        .vector = vector,
+    };
+
+    return xen_hypercall_hvm_op(HVMOP_set_evtchn_upcall_vector, &a);
 }
 
 #else /* CONFIG_XEN_GUEST */

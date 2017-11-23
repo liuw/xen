@@ -45,6 +45,7 @@
 #include <mach_apic.h>
 #include <mach_wakecpu.h>
 #include <smpboot_hooks.h>
+#include <asm/guest.h>
 
 /* Override macros from asm/page.h to make them work with mfn_t */
 #undef mfn_to_page
@@ -371,6 +372,9 @@ void start_secondary(void *unused)
     setup_vector_irq(cpu);
     cpumask_set_cpu(cpu, &cpu_online_map);
     unlock_vector_lock();
+
+    if ( xen_guest )
+        hypervisor_ap_setup();
 
     /* We can take interrupts now: we're officially "up". */
     local_irq_enable();
