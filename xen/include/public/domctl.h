@@ -116,6 +116,7 @@ struct xen_domctl_getdomaininfo {
     uint32_t ssidref;
     xen_domain_handle_t handle;
     uint32_t cpupool;
+    struct xen_arch_domainconfig arch_config;
 };
 typedef struct xen_domctl_getdomaininfo xen_domctl_getdomaininfo_t;
 DEFINE_XEN_GUEST_HANDLE(xen_domctl_getdomaininfo_t);
