@@ -99,12 +99,25 @@ static inline long xen_hypercall_memory_op(unsigned int cmd, void *arg)
 /*
  * Higher level hypercall helpers
  */
+static inline void xen_hypercall_console_write(
+    const char *buf, unsigned int count)
+{
+    (void)_hypercall64_3(long, __HYPERVISOR_console_io,
+                         CONSOLEIO_write, count, buf);
+}
+
 static inline long xen_hypercall_shutdown(unsigned int reason)
 {
     return xen_hypercall_sched_op(SCHEDOP_shutdown, &reason);
 }
 
 #else /* CONFIG_XEN_GUEST */
+
+static inline void xen_hypercall_console_write(
+    const char *buf, unsigned int count)
+{
+    ASSERT_UNREACHABLE();
+}
 
 static inline long xen_hypercall_shutdown(unsigned int reason)
 {
