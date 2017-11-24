@@ -16,6 +16,7 @@
 #include <xen/event.h>
 #include <xen/console.h>
 #include <xen/serial.h>
+#include <xen/pv_console.h>
 #include <xen/softirq.h>
 #include <xen/keyhandler.h>
 #include <xen/guest_access.h>
@@ -339,6 +340,9 @@ static void sercon_puts(const char *s)
         (*serial_steal_fn)(s);
     else
         serial_puts(sercon_handle, s);
+
+    /* Copy all serial output into PV console */
+    pv_console_puts(s);
 }
 
 static void dump_console_ring_key(unsigned char key)
@@ -791,7 +795,9 @@ void __init console_init_preirq(void)
     {
         if ( *p == ',' )
             p++;
-        if ( !strncmp(p, "vga", 3) )
+        if ( !strncmp(p, "pv", 2) )
+            pv_console_init();
+        else if ( !strncmp(p, "vga", 3) )
             video_init();
         else if ( !strncmp(p, "xen", 3) )
             opt_console_xen = true;
@@ -814,6 +820,7 @@ void __init console_init_preirq(void)
     }
 
     serial_set_rx_handler(sercon_handle, serial_rx);
+    pv_console_set_rx_handler(serial_rx);
 
     /* HELLO WORLD --- start-of-day banner text. */
     spin_lock(&console_lock);
@@ -866,6 +873,7 @@ void __init console_init_ring(void)
 void __init console_init_postirq(void)
 {
     serial_init_postirq();
+    pv_console_init_postirq();
 
     if ( conring != _conring )
         return;
