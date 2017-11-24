@@ -12,6 +12,7 @@
 #include <mach_apic.h>
 #include <asm/setup.h>
 #include <public/sysctl.h> /* for XEN_INVALID_{SOCKET,CORE}_ID */
+#include <asm/guest.h>
 
 #include "cpu.h"
 
@@ -177,7 +178,8 @@ void ctxt_switch_levelling(const struct vcpu *next)
 		 * generating the maximum full cpuid policy into Xen, at which
 		 * this problem will disappear.
 		 */
-		set_cpuid_faulting(nextd && !is_control_domain(nextd) &&
+		set_cpuid_faulting(nextd &&
+				   (pv_shim || !is_control_domain(nextd)) &&
 				   (is_pv_domain(nextd) ||
 				    next->arch.msr->
 				    misc_features_enables.cpuid_faulting));
