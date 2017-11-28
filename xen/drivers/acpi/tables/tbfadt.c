@@ -95,7 +95,7 @@ static struct acpi_fadt_info __initdata fadt_info_table[] = {
 
 	{"PmTimerBlock", ACPI_FADT_OFFSET(xpm_timer_block),
 	 ACPI_FADT_OFFSET(pm_timer_block),
-	 ACPI_FADT_OFFSET(pm_timer_length), ACPI_FADT_REQUIRED},
+	 ACPI_FADT_OFFSET(pm_timer_length), ACPI_FADT_OPTIONAL},
 
 	{"Gpe0Block", ACPI_FADT_OFFSET(xgpe0_block),
 	 ACPI_FADT_OFFSET(gpe0_block),
