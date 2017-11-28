@@ -3,8 +3,14 @@ config VIDEO
 	bool
 
 config VGA
-	bool
+	bool "VGA support"
 	select VIDEO
+	depends on X86
+	default y
+	---help---
+	  Enable VGA output for the Xen hypervisor.
+
+	  If unsure, say Y.
 
 config HAS_ARM_HDLCD
 	bool
