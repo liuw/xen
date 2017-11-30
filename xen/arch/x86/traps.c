@@ -853,6 +853,7 @@ void cpuid_hypervisor_leaves(const struct vcpu *v, uint32_t leaf,
 
     case 1:
         res->a = (xen_major_version() << 16) | xen_minor_version();
+        res->b = d->domain_id;
         break;
 
     case 2:

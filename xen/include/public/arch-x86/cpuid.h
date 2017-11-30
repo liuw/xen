@@ -57,7 +57,8 @@
  * Leaf 2 (0x40000x01)
  * EAX[31:16]: Xen major version.
  * EAX[15: 0]: Xen minor version.
- * EBX-EDX: Reserved (currently all zeroes).
+ * EBX: Domain id.
+ * ECX-EDX: Reserved (currently all zeroes).
  */
 
 /*
