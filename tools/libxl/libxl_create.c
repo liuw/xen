@@ -389,6 +389,18 @@ int libxl__domain_build_info_setdefault(libxl__gc *gc,
         }
         break;
     case LIBXL_DOMAIN_TYPE_PVH:
+        libxl_defbool_setdefault(&b_info->u.pvh.pvshim, false);
+        if (libxl_defbool_val(b_info->u.pvh.pvshim)) {
+            if (!b_info->u.pvh.pvshim_path)
+                b_info->u.pvh.pvshim_path =
+                    libxl__sprintf(NOGC, "%s/%s",
+                                   libxl__xenfirmwaredir_path(),
+                                   PVSHIM_BASENAME);
+            if (!b_info->u.pvh.pvshim_cmdline)
+                b_info->u.pvh.pvshim_cmdline =
+                    libxl__strdup(NOGC, PVSHIM_CMDLINE);
+        }
+
         break;
     default:
         LOG(ERROR, "invalid domain type %s in create info",
@@ -476,10 +488,6 @@ int libxl__domain_build(libxl__gc *gc,
 
         break;
     case LIBXL_DOMAIN_TYPE_PV:
-        ret = libxl__build_pv(gc, domid, info, state);
-        if (ret)
-            goto out;
-
         vments = libxl__calloc(gc, 11, sizeof(char *));
         i = 0;
         vments[i++] = "image/ostype";
@@ -499,6 +507,9 @@ int libxl__domain_build(libxl__gc *gc,
 
         break;
     case LIBXL_DOMAIN_TYPE_PVH:
+        state->shim_path = info->u.pvh.pvshim_path;
+        state->shim_cmdline = info->u.pvh.pvshim_cmdline;
+
         ret = libxl__build_hvm(gc, domid, d_config, state);
         if (ret)
             goto out;
