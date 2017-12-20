@@ -20,6 +20,7 @@
  */
 #include <xen/hypercall.h>
 #include <xen/init.h>
+#include <xen/shutdown.h>
 #include <xen/types.h>
 
 #include <asm/apic.h>
@@ -92,6 +93,24 @@ void __init pv_shim_setup_dom(struct domain *d, l4_pgentry_t *l4start,
         SET_AND_MAP_PARAM(HVM_PARAM_CONSOLE_EVTCHN, si->console.domU.evtchn, 0);
     }
 #undef SET_AND_MAP_PARAM
+}
+
+void pv_shim_shutdown(uint8_t reason)
+{
+    /* XXX: handle suspend */
+    xen_hypercall_shutdown(reason);
+}
+
+domid_t get_dom0_domid(void)
+{
+    uint32_t eax, ebx, ecx, edx;
+
+    if ( !pv_shim )
+        return 0;
+
+    cpuid(hypervisor_cpuid_base() + 1, &eax, &ebx, &ecx, &edx);
+
+    return ebx ?: 1;
 }
 
 /*

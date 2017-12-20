@@ -39,6 +39,7 @@ int hypervisor_free_unused_page(mfn_t mfn);
 void hypervisor_fixup_e820(struct e820map *e820);
 void hypervisor_init_memory(void);
 const unsigned long *hypervisor_reserved_pages(unsigned int *size);
+uint32_t hypervisor_cpuid_base(void);
 
 #else
 
@@ -84,6 +85,11 @@ static inline const unsigned long *hypervisor_reserved_pages(unsigned int *size)
 {
     ASSERT_UNREACHABLE();
     return NULL;
+};
+static inline uint32_t hypervisor_cpuid_base(void)
+{
+    ASSERT_UNREACHABLE();
+    return 0;
 };
 
 #endif /* CONFIG_XEN_GUEST */
