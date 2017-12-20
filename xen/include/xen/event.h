@@ -48,6 +48,21 @@ int evtchn_send(struct domain *d, unsigned int lport);
 /* Bind a local event-channel port to the specified VCPU. */
 long evtchn_bind_vcpu(unsigned int port, unsigned int vcpu_id);
 
+/* Bind a VIRQ. */
+int evtchn_bind_virq(evtchn_bind_virq_t *bind, evtchn_port_t port);
+
+/* Get the status of an event channel port. */
+int evtchn_status(evtchn_status_t *status);
+
+/* Close an event channel. */
+int evtchn_close(struct domain *d1, int port1, bool guest);
+
+/* Free an event channel. */
+void evtchn_free(struct domain *d, struct evtchn *chn);
+
+/* Allocate a specific event channel port. */
+int evtchn_allocate_port(struct domain *d, unsigned int port);
+
 /* Unmask a local event-channel port. */
 int evtchn_unmask(unsigned int port);
 
@@ -85,14 +100,15 @@ void arch_evtchn_inject(struct vcpu *v);
 #define bucket_from_port(d, p) \
     ((group_from_port(d, p))[((p) % EVTCHNS_PER_GROUP) / EVTCHNS_PER_BUCKET])
 
-static inline bool_t port_is_valid(struct domain *d, unsigned int p)
+static inline bool_t port_is_valid(const struct domain *d, unsigned int p)
 {
     if ( p >= d->max_evtchns )
         return 0;
     return p < read_atomic(&d->valid_evtchns);
 }
 
-static inline struct evtchn *evtchn_from_port(struct domain *d, unsigned int p)
+static inline struct evtchn *evtchn_from_port(const struct domain *d,
+                                              unsigned int p)
 {
     if ( p < EVTCHNS_PER_BUCKET )
         return &d->evtchn[p];
