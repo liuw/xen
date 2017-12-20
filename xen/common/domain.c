@@ -63,6 +63,8 @@ struct domain *domain_list;
 
 struct domain *hardware_domain __read_mostly;
 
+struct domain *pv_domain __read_mostly;
+
 #ifdef CONFIG_LATE_HWDOM
 domid_t hardware_domid __read_mostly;
 integer_param("hardware_dom", hardware_domid);
@@ -395,6 +397,11 @@ struct domain *domain_create(domid_t domid, unsigned int domcr_flags,
         rcu_assign_pointer(*pd, d);
         rcu_assign_pointer(domain_hash[DOMAIN_HASH(domid)], d);
         spin_unlock(&domlist_update_lock);
+
+#ifdef CONFIG_X86
+        if ( pv_shim )
+            pv_domain = d;
+#endif
     }
 
     return d;
