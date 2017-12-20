@@ -16,6 +16,7 @@
 #include <asm/hpet.h>
 #include <asm/io_apic.h>
 #include <asm/p2m.h>
+#include <asm/pv/shim.h>
 #include <asm/setup.h>
 
 static long __initdata dom0_nrpages;
@@ -384,6 +385,9 @@ int __init dom0_setup_permissions(struct domain *d)
     unsigned long mfn;
     unsigned int i;
     int rc;
+
+    if ( pv_shim )
+        return 0;
 
     /* The hardware domain is initially permitted full I/O capabilities. */
     rc = ioports_permit_access(d, 0, 0xFFFF);
