@@ -191,6 +191,12 @@ void __init pv_shim_setup_dom(struct domain *d, l4_pgentry_t *l4start,
                             console_mfn, vphysmap);
         consoled_set_ring_addr(page);
     }
+
+    /*
+     * Set the max pages to the current number of pages to prevent the
+     * guest from depleting the shim memory pool.
+     */
+    d->max_pages = d->tot_pages;
 }
 
 static void write_start_info(struct domain *d)
