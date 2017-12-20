@@ -29,6 +29,10 @@
 #include <public/memory.h>
 #include <xsm/xsm.h>
 
+#ifdef CONFIG_X86
+#include <asm/pv/shim.h>
+#endif
+
 struct memop_args {
     /* INPUT */
     struct domain *domain;     /* Domain to be affected. */
@@ -993,6 +997,11 @@ long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
             return start_extent;
         }
 
+#ifdef CONFIG_X86
+        if ( pv_shim && op != XENMEM_decrease_reservation && !args.nr_done )
+            pv_shim_online_memory(args.nr_extents, args.extent_order);
+#endif
+
         switch ( op )
         {
         case XENMEM_increase_reservation:
@@ -1014,6 +1023,11 @@ long do_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
             return hypercall_create_continuation(
                 __HYPERVISOR_memory_op, "lh",
                 op | (rc << MEMOP_EXTENT_SHIFT), arg);
+
+#ifdef CONFIG_X86
+        if ( pv_shim && op == XENMEM_decrease_reservation )
+            pv_shim_offline_memory(args.nr_extents, args.extent_order);
+#endif
 
         break;
 
