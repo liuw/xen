@@ -40,6 +40,10 @@
 #include <xsm/xsm.h>
 #include <asm/flushtlb.h>
 
+#ifdef CONFIG_X86
+#include <asm/pv/shim.h>
+#endif
+
 /* Per-domain grant information. */
 struct grant_table {
     /*
@@ -3323,6 +3327,12 @@ do_grant_table_op(
 
     if ( (cmd &= GNTTABOP_CMD_MASK) != GNTTABOP_cache_flush && opaque_in )
         return -EINVAL;
+
+#ifdef CONFIG_X86
+    if ( pv_shim )
+        /* NB: no continuation support for pv-shim ops. */
+        return pv_shim_grant_table_op(cmd, uop, count, false);
+#endif
 
     rc = -EFAULT;
     switch ( cmd )

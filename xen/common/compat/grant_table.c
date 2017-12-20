@@ -122,6 +122,11 @@ int compat_grant_table_op(unsigned int cmd,
         return do_grant_table_op(cmd, cmp_uop, count);
     }
 
+#ifdef CONFIG_X86
+    if ( pv_shim )
+        return pv_shim_grant_table_op(cmd, cmp_uop, count, true);
+#endif
+
     if ( (int)count < 0 )
         rc = -EINVAL;
 
