@@ -466,8 +466,7 @@ void share_xen_page_with_guest(
     spin_unlock(&d->page_alloc_lock);
 }
 
-int __init unshare_xen_page_with_guest(struct page_info *page,
-                                       struct domain *d)
+int unshare_xen_page_with_guest(struct page_info *page, struct domain *d)
 {
     if ( page_get_owner(page) != d || !is_xen_heap_page(page) )
         return -EINVAL;

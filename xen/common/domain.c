@@ -701,15 +701,12 @@ void __domain_crash_synchronous(void)
 }
 
 
-void domain_shutdown(struct domain *d, u8 reason)
+int domain_shutdown(struct domain *d, u8 reason)
 {
     struct vcpu *v;
 
     if ( pv_shim )
-    {
-        pv_shim_shutdown(reason);
-        return;
-    }
+        return pv_shim_shutdown(reason);
 
     spin_lock(&d->shutdown_lock);
 
@@ -723,7 +720,7 @@ void domain_shutdown(struct domain *d, u8 reason)
     if ( d->is_shutting_down )
     {
         spin_unlock(&d->shutdown_lock);
-        return;
+        return 0;
     }
 
     d->is_shutting_down = 1;
@@ -745,6 +742,8 @@ void domain_shutdown(struct domain *d, u8 reason)
     __domain_finalise_shutdown(d);
 
     spin_unlock(&d->shutdown_lock);
+
+    return 0;
 }
 
 void domain_resume(struct domain *d)
