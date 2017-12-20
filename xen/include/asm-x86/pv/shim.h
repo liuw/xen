@@ -42,6 +42,8 @@ long pv_shim_grant_table_op(unsigned int cmd, XEN_GUEST_HANDLE_PARAM(void) uop,
                             unsigned int count, bool compat);
 long pv_shim_cpu_up(void *data);
 long pv_shim_cpu_down(void *data);
+void pv_shim_online_memory(unsigned int nr, unsigned int order);
+void pv_shim_offline_memory(unsigned int nr, unsigned int order);
 domid_t get_initial_domain_id(void);
 uint64_t pv_shim_mem(uint64_t avail);
 
@@ -87,6 +89,14 @@ static inline long pv_shim_cpu_down(void *data)
 {
     ASSERT_UNREACHABLE();
     return 0;
+}
+static inline void pv_shim_online_memory(unsigned int nr, unsigned int order)
+{
+    ASSERT_UNREACHABLE();
+}
+static inline void pv_shim_offline_memory(unsigned int nr, unsigned int order)
+{
+    ASSERT_UNREACHABLE();
 }
 static inline domid_t get_initial_domain_id(void)
 {
