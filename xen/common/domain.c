@@ -42,6 +42,7 @@
 #include <xen/trace.h>
 #include <xen/tmem.h>
 #include <asm/setup.h>
+#include <asm/guest.h>
 
 /* Linux config option: propageted to domain0 */
 /* xen_processor_pmbits: xen control Cx, Px, ... */
@@ -696,6 +697,12 @@ void __domain_crash_synchronous(void)
 void domain_shutdown(struct domain *d, u8 reason)
 {
     struct vcpu *v;
+
+    if ( pv_shim )
+    {
+        pv_shim_shutdown(reason);
+        return;
+    }
 
     spin_lock(&d->shutdown_lock);
 
