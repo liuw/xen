@@ -41,6 +41,7 @@ void pv_shim_inject_evtchn(unsigned int port);
 long pv_shim_grant_table_op(unsigned int cmd, XEN_GUEST_HANDLE_PARAM(void) uop,
                             unsigned int count, bool compat);
 domid_t get_initial_domain_id(void);
+uint64_t pv_shim_mem(uint64_t avail);
 
 #else
 
@@ -77,6 +78,11 @@ static inline long pv_shim_grant_table_op(unsigned int cmd,
 }
 static inline domid_t get_initial_domain_id(void)
 {
+    return 0;
+}
+static inline uint64_t pv_shim_mem(uint64_t avail)
+{
+    ASSERT_UNREACHABLE();
     return 0;
 }
 
