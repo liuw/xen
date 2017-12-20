@@ -29,6 +29,7 @@
 #include <asm/processor.h>
 
 #include <public/arch-x86/cpuid.h>
+#include <public/hvm/params.h>
 
 bool xen_guest;
 
@@ -257,6 +258,81 @@ int hypervisor_alloc_unused_page(mfn_t *mfn)
 int hypervisor_free_unused_page(mfn_t mfn)
 {
     return rangeset_remove_range(mem, mfn_x(mfn), mfn_x(mfn));
+}
+
+static void __init mark_pfn_as_ram(struct e820map *e820, uint64_t pfn)
+{
+    if ( !e820_add_range(e820, pfn << PAGE_SHIFT,
+                         (pfn << PAGE_SHIFT) + PAGE_SIZE, E820_RAM) )
+        if ( !e820_change_range_type(e820, pfn << PAGE_SHIFT,
+                                     (pfn << PAGE_SHIFT) + PAGE_SIZE,
+                                     E820_RESERVED, E820_RAM) )
+            panic("Unable to add/change memory type of pfn %#lx to RAM", pfn);
+}
+
+void __init hypervisor_fixup_e820(struct e820map *e820)
+{
+    uint64_t pfn = 0;
+    long rc;
+
+    if ( !xen_guest )
+        return;
+
+#define MARK_PARAM_RAM(p) ({                    \
+    rc = xen_hypercall_hvm_get_param(p, &pfn);  \
+    if ( rc )                                   \
+        panic("Unable to get " #p);             \
+    mark_pfn_as_ram(e820, pfn);                 \
+})
+    MARK_PARAM_RAM(HVM_PARAM_STORE_PFN);
+    if ( !pv_console )
+        MARK_PARAM_RAM(HVM_PARAM_CONSOLE_PFN);
+#undef MARK_PARAM_RAM
+}
+
+void __init hypervisor_init_memory(void)
+{
+    uint64_t pfn = 0;
+    long rc;
+
+    if ( !xen_guest )
+        return;
+
+#define SHARE_PARAM(p) ({                                                   \
+    rc = xen_hypercall_hvm_get_param(p, &pfn);                              \
+    if ( rc )                                                               \
+        panic("Unable to get " #p);                                         \
+    share_xen_page_with_guest(mfn_to_page(pfn), dom_io, XENSHARE_writable); \
+})
+    SHARE_PARAM(HVM_PARAM_STORE_PFN);
+    if ( !pv_console )
+        SHARE_PARAM(HVM_PARAM_CONSOLE_PFN);
+#undef SHARE_PARAM
+}
+
+const unsigned long *__init hypervisor_reserved_pages(unsigned int *size)
+{
+    static unsigned long __initdata reserved_pages[2];
+    uint64_t pfn = 0;
+    long rc;
+
+    if ( !xen_guest )
+        return NULL;
+
+    *size = 0;
+
+#define RESERVE_PARAM(p) ({                             \
+    rc = xen_hypercall_hvm_get_param(p, &pfn);          \
+    if ( rc )                                           \
+        panic("Unable to get " #p);                     \
+    reserved_pages[(*size)++] = pfn << PAGE_SHIFT;      \
+})
+    RESERVE_PARAM(HVM_PARAM_STORE_PFN);
+    if ( !pv_console )
+        RESERVE_PARAM(HVM_PARAM_CONSOLE_PFN);
+#undef RESERVE_PARAM
+
+    return reserved_pages;
 }
 
 /*

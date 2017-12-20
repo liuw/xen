@@ -298,6 +298,9 @@ void __init arch_init_memory(void)
         share_xen_page_with_guest(mfn_to_page(_mfn(i)),
                                   dom_io, XENSHARE_writable);
 
+    if ( xen_guest )
+        hypervisor_init_memory();
+
     /* Any areas not specified as RAM by the e820 map are considered I/O. */
     for ( i = 0, pfn = 0; pfn < max_page; i++ )
     {
