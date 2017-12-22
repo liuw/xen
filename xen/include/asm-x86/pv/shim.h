@@ -40,6 +40,8 @@ long pv_shim_event_channel_op(int cmd, XEN_GUEST_HANDLE_PARAM(void) arg);
 void pv_shim_inject_evtchn(unsigned int port);
 long pv_shim_grant_table_op(unsigned int cmd, XEN_GUEST_HANDLE_PARAM(void) uop,
                             unsigned int count, bool compat);
+long pv_shim_cpu_up(void *data);
+long pv_shim_cpu_down(void *data);
 domid_t get_dom0_domid(void);
 uint64_t pv_shim_mem(uint64_t avail);
 
@@ -72,6 +74,16 @@ static inline void pv_shim_inject_evtchn(unsigned int port)
 static inline long pv_shim_grant_table_op(unsigned int cmd,
                                           XEN_GUEST_HANDLE_PARAM(void) uop,
                                           unsigned int count, bool compat)
+{
+    ASSERT_UNREACHABLE();
+    return 0;
+}
+static inline long pv_shim_cpu_up(void *data)
+{
+    ASSERT_UNREACHABLE();
+    return 0;
+}
+static inline long pv_shim_cpu_down(void *data)
 {
     ASSERT_UNREACHABLE();
     return 0;
