@@ -37,6 +37,8 @@ static uint8_t evtchn_upcall_vector;
 extern char hypercall_page[];
 static struct rangeset *mem;
 
+DEFINE_PER_CPU(unsigned int, vcpu_id);
+
 static void __init find_xen_leaves(void)
 {
     uint32_t eax, ebx, ecx, edx, base;
@@ -95,10 +97,24 @@ static void map_shared_info(void)
     set_fixmap(FIX_XEN_SHARED_INFO, mfn_x(mfn) << PAGE_SHIFT);
 }
 
+static void set_vcpu_id(void)
+{
+    uint32_t eax, ebx, ecx, edx;
+
+    ASSERT(xen_cpuid_base);
+
+    /* Fetch vcpu id from cpuid. */
+    cpuid(xen_cpuid_base + 4, &eax, &ebx, &ecx, &edx);
+    if ( eax & XEN_HVM_CPUID_VCPU_ID_PRESENT )
+        this_cpu(vcpu_id) = ebx;
+    else
+        this_cpu(vcpu_id) = smp_processor_id();
+}
+
 static void xen_evtchn_upcall(struct cpu_user_regs *regs)
 {
-    unsigned int cpu = smp_processor_id();
-    struct vcpu_info *vcpu_info = &XEN_shared_info->vcpu_info[cpu];
+    struct vcpu_info *vcpu_info =
+        &XEN_shared_info->vcpu_info[this_cpu(vcpu_id)];
 
     vcpu_info->evtchn_upcall_pending = 0;
     xchg(&vcpu_info->evtchn_pending_sel, 0);
@@ -110,7 +126,7 @@ static void xen_evtchn_upcall(struct cpu_user_regs *regs)
 
 static void ap_setup_event_channels(bool clear)
 {
-    unsigned int i, cpu = smp_processor_id();
+    unsigned int i, cpu = this_cpu(vcpu_id);
     struct vcpu_info *vcpu_info = &XEN_shared_info->vcpu_info[cpu];
     int rc;
 
@@ -191,12 +207,14 @@ void __init hypervisor_setup(void)
     init_memmap();
 
     map_shared_info();
+    set_vcpu_id();
 
     init_evtchn();
 }
 
 void hypervisor_ap_setup(void)
 {
+    set_vcpu_id();
     ap_setup_event_channels(false);
 }
 
