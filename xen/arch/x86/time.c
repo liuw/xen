@@ -533,11 +533,11 @@ static struct platform_timesource __initdata plt_tsc =
  * Xen clock source is a variant of TSC source.
  */
 
-DECLARE_PER_CPU(unsigned int, vcpu_id);
+DECLARE_PER_CPU(struct vcpu_info *, vcpu_info);
 
 static u64 xen_timer_cpu_frequency(void)
 {
-    struct vcpu_time_info *info = &XEN_shared_info->vcpu_info[0].time;
+    struct vcpu_time_info *info = &this_cpu(vcpu_info)->time;
     u64 freq;
 
     freq = 1000000000ULL << 32;
@@ -576,15 +576,10 @@ u64 __read_cycle(const struct vcpu_time_info *info, u64 tsc)
 static u64 last_value;
 static u64 read_xen_timer(void)
 {
-    struct vcpu_time_info *info;
-    unsigned int cpu = this_cpu(vcpu_id);
+    struct vcpu_time_info *info = &this_cpu(vcpu_info)->time;
     u32 version;
     u64 ret;
     u64 last;
-
-    /* TODO: lift this restriction */
-    ASSERT(cpu < XEN_LEGACY_MAX_VCPUS);
-    info = &XEN_shared_info->vcpu_info[cpu].time;
 
     do {
         version = info->version & ~1;

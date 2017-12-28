@@ -23,6 +23,7 @@
 
 #include <public/xen.h>
 #include <public/sched.h>
+#include <public/vcpu.h>
 #include <public/hvm/hvm_op.h>
 
 #ifdef CONFIG_XEN_GUEST
@@ -105,6 +106,12 @@ static inline long xen_hypercall_event_channel_op(unsigned int cmd, void *arg)
 static inline long xen_hypercall_hvm_op(unsigned int op, void *arg)
 {
     return _hypercall64_2(long, __HYPERVISOR_hvm_op, op, arg);
+}
+
+static inline long xen_hypercall_vcpu_op(unsigned int cmd, unsigned int vcpu,
+                                         void *arg)
+{
+    return _hypercall64_3(long, __HYPERVISOR_vcpu_op, cmd, vcpu, arg);
 }
 
 /*
