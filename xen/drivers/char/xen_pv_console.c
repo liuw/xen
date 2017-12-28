@@ -37,6 +37,7 @@ static DEFINE_SPINLOCK(tx_lock);
 
 void __init pv_console_init(void)
 {
+    struct evtchn_unmask unmask;
     long r;
     uint64_t raw_pfn = 0, raw_evtchn = 0;
 
@@ -57,6 +58,9 @@ void __init pv_console_init(void)
     set_fixmap(FIX_PV_CONSOLE, raw_pfn << PAGE_SHIFT);
     cons_ring = (struct xencons_interface *)fix_to_virt(FIX_PV_CONSOLE);
     cons_evtchn = raw_evtchn;
+
+    unmask.port = raw_evtchn;
+    BUG_ON(xen_hypercall_event_channel_op(EVTCHNOP_unmask, &unmask));
 
     printk("Initialised PV console at 0x%p with pfn %#lx and evtchn %#x\n",
             cons_ring, raw_pfn, cons_evtchn);
