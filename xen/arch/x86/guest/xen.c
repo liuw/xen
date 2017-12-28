@@ -33,7 +33,6 @@
 bool xen_guest;
 
 static uint32_t xen_cpuid_base;
-static uint8_t evtchn_upcall_vector;
 extern char hypercall_page[];
 static struct rangeset *mem;
 
@@ -86,6 +85,7 @@ static void map_shared_info(void)
         .domid = DOMID_SELF,
         .space = XENMAPSPACE_shared_info,
     };
+    unsigned int i;
 
     if ( hypervisor_alloc_unused_page(&mfn) )
         panic("unable to reserve shared info memory page");
@@ -95,6 +95,10 @@ static void map_shared_info(void)
         panic("Failed to map shared_info page");
 
     set_fixmap(FIX_XEN_SHARED_INFO, mfn_x(mfn) << PAGE_SHIFT);
+
+    /* Mask all upcalls */
+    for ( i = 0; i < ARRAY_SIZE(XEN_shared_info->evtchn_mask); i++ )
+        xchg(&XEN_shared_info->evtchn_mask[i], ~0ul);
 }
 
 static void set_vcpu_id(void)
@@ -124,58 +128,21 @@ static void xen_evtchn_upcall(struct cpu_user_regs *regs)
     ack_APIC_irq();
 }
 
-static void ap_setup_event_channels(bool clear)
+static void init_evtchn(void)
 {
-    unsigned int i, cpu = this_cpu(vcpu_id);
-    struct vcpu_info *vcpu_info = &XEN_shared_info->vcpu_info[cpu];
+    unsigned int vcpu = this_cpu(vcpu_id);
+    static uint8_t evtchn_upcall_vector;
     int rc;
 
+    if ( !evtchn_upcall_vector )
+        alloc_direct_apic_vector(&evtchn_upcall_vector, xen_evtchn_upcall);
+
     ASSERT(evtchn_upcall_vector);
-    ASSERT(cpu < ARRAY_SIZE(XEN_shared_info->vcpu_info));
+    ASSERT(vcpu < ARRAY_SIZE(XEN_shared_info->vcpu_info));
 
-    if ( !clear )
-    {
-        /*
-         * This is necessary to ensure that a CPU will be interrupted in case
-         * of an event channel notification.
-         */
-        ASSERT(vcpu_info->evtchn_upcall_pending == 0);
-        ASSERT(vcpu_info->evtchn_pending_sel == 0);
-    }
-
-    rc = xen_hypercall_set_evtchn_upcall_vector(cpu, evtchn_upcall_vector);
+    rc = xen_hypercall_set_evtchn_upcall_vector(vcpu, evtchn_upcall_vector);
     if ( rc )
         panic("Unable to set evtchn upcall vector: %d", rc);
-
-    if ( clear )
-    {
-        /*
-         * Clear any pending upcall bits. This makes us effectively ignore any
-         * previous upcalls which might be suboptimal.
-         */
-        vcpu_info->evtchn_upcall_pending = 0;
-        xchg(&vcpu_info->evtchn_pending_sel, 0);
-
-        /*
-         * evtchn_pending can be cleared only on the boot CPU because it's
-         * located in a shared structure.
-         */
-        for ( i = 0; i < 8; i++ )
-            xchg(&XEN_shared_info->evtchn_pending[i], 0);
-    }
-}
-
-static void __init init_evtchn(void)
-{
-    unsigned int i;
-
-    alloc_direct_apic_vector(&evtchn_upcall_vector, xen_evtchn_upcall);
-
-    /* Mask all upcalls */
-    for ( i = 0; i < 8; i++ )
-        xchg(&XEN_shared_info->evtchn_mask[i], ~0ul);
-
-    ap_setup_event_channels(true);
 }
 
 static void __init init_memmap(void)
@@ -215,7 +182,7 @@ void __init hypervisor_setup(void)
 void hypervisor_ap_setup(void)
 {
     set_vcpu_id();
-    ap_setup_event_channels(false);
+    init_evtchn();
 }
 
 int hypervisor_alloc_unused_page(mfn_t *mfn)
