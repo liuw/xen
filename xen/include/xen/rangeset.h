@@ -76,6 +76,10 @@ int __must_check rangeset_remove_singleton(
 bool_t __must_check rangeset_contains_singleton(
     struct rangeset *r, unsigned long s);
 
+/* Reserve a region of the specified size. */
+int __must_check rangeset_reserve_hole(struct rangeset *r, unsigned long size,
+                                       unsigned long *s);
+
 /* swap contents */
 void rangeset_swap(struct rangeset *a, struct rangeset *b);
 

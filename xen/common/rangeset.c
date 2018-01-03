@@ -298,6 +298,57 @@ int rangeset_report_ranges(
     return rc;
 }
 
+int rangeset_reserve_hole(struct rangeset *r, unsigned long size,
+                          unsigned long *s)
+{
+    struct range *prev, *next;
+
+    *s = 0;
+
+    write_lock(&r->lock);
+
+    for ( prev = NULL, next = first_range(r);
+          next;
+          prev = next, next = next_range(r, next) )
+    {
+        if ( (next->s - *s) >= size )
+            goto insert;
+
+        if ( next->e == ~0UL )
+            goto out;
+
+        *s = next->e + 1;
+    }
+
+    if ( (~0UL - *s) + 1 >= size )
+        goto insert;
+
+ out:
+    write_unlock(&r->lock);
+    return -ENOSPC;
+
+ insert:
+    if ( !prev )
+    {
+        next = alloc_range(r);
+        if ( !next )
+        {
+            write_unlock(&r->lock);
+            return -ENOMEM;
+        }
+
+        next->s = *s;
+        next->e = *s + size - 1;
+        insert_range(r, prev, next);
+    }
+    else
+        prev->e += size;
+
+    write_unlock(&r->lock);
+
+    return 0;
+}
+
 int rangeset_add_singleton(
     struct rangeset *r, unsigned long s)
 {
