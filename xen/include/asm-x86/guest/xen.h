@@ -32,7 +32,10 @@ extern bool xen_guest;
 
 void probe_hypervisor(void);
 void hypervisor_early_setup(struct e820map *e820);
+void hypervisor_setup(void);
 void hypervisor_ap_setup(void);
+int hypervisor_alloc_unused_page(mfn_t *mfn);
+int hypervisor_free_unused_page(mfn_t mfn);
 
 #else
 
@@ -43,10 +46,29 @@ static inline void hypervisor_early_setup(struct e820map *e820)
 {
     ASSERT_UNREACHABLE();
 };
+
+static inline void hypervisor_setup(void)
+{
+    ASSERT_UNREACHABLE();
+}
+
 static inline void hypervisor_ap_setup(void)
 {
     ASSERT_UNREACHABLE();
 };
+
+static inline int hypervisor_alloc_unused_page(mfn_t *mfn)
+{
+
+    ASSERT_UNREACHABLE();
+    return 0;
+}
+
+static inline int hypervisor_free_unused_page(mfn_t mfn)
+{
+    ASSERT_UNREACHABLE();
+    return 0;
+}
 
 #endif /* CONFIG_XEN_GUEST */
 #endif /* __X86_GUEST_XEN_H__ */

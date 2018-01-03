@@ -21,6 +21,7 @@
 #include <xen/init.h>
 #include <xen/types.h>
 #include <xen/pv_console.h>
+#include <xen/rangeset.h>
 
 #include <asm/apic.h>
 #include <asm/guest.h>
@@ -34,6 +35,7 @@ bool xen_guest;
 static uint32_t xen_cpuid_base;
 static uint8_t evtchn_upcall_vector;
 extern char hypercall_page[];
+static struct rangeset *mem;
 
 static void __init find_xen_leaves(void)
 {
@@ -161,9 +163,38 @@ static void __init init_evtchn(void)
     ap_setup_event_channels(true);
 }
 
+static void __init init_memmap(void)
+{
+    unsigned int i;
+
+    mem = rangeset_new(NULL, "host memory map", 0);
+    if ( !mem )
+        panic("failed to allocate host memory rangeset");
+
+    /* Mark up to the last memory page (or 4GB) as RAM. */
+    if ( rangeset_add_range(mem, 0, max_t(unsigned long, max_page,
+                                          (GB(4) - 1) >> PAGE_SHIFT)) )
+        panic("unable to add RAM to memory rangeset");
+
+    for ( i = 0; i < e820.nr_map; i++ )
+    {
+        struct e820entry *e = &e820.map[i];
+
+        if ( rangeset_add_range(mem, e->addr >> PAGE_SHIFT,
+                                (e->addr + e->size) >> PAGE_SHIFT) )
+            panic("unable to add range %#lx - %#lx to memory rangeset",
+                  e->addr, e->addr + e->size);
+    }
+}
+
 void __init hypervisor_early_setup(struct e820map *e820)
 {
     map_shared_info(e820);
+}
+
+void __init hypervisor_setup(void)
+{
+    init_memmap();
 
     init_evtchn();
 }
@@ -171,6 +202,23 @@ void __init hypervisor_early_setup(struct e820map *e820)
 void hypervisor_ap_setup(void)
 {
     ap_setup_event_channels(false);
+}
+
+int hypervisor_alloc_unused_page(mfn_t *mfn)
+{
+    unsigned long m;
+    int rc;
+
+    rc = rangeset_reserve_hole(mem, 1, &m);
+    if ( !rc )
+        *mfn = _mfn(m);
+
+    return rc;
+}
+
+int hypervisor_free_unused_page(mfn_t mfn)
+{
+    return rangeset_remove_range(mem, mfn_x(mfn), mfn_x(mfn));
 }
 
 /*
