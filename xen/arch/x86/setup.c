@@ -898,9 +898,6 @@ void __init noreturn __start_xen(unsigned long mbi_p)
     /* Create a temporary copy of the E820 map. */
     memcpy(&boot_e820, &e820, sizeof(e820));
 
-    if ( xen_guest )
-        hypervisor_early_setup(&boot_e820);
-
     /* Early kexec reservation (explicit static start address). */
     nr_pages = 0;
     for ( i = 0; i < e820.nr_map; i++ )

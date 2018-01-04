@@ -77,23 +77,22 @@ void __init probe_hypervisor(void)
     xen_guest = true;
 }
 
-static void map_shared_info(struct e820map *e820)
+static void map_shared_info(void)
 {
-    paddr_t frame = 0xff000000; /* TODO: Hardcoded beside magic frames. */
+    mfn_t mfn;
     struct xen_add_to_physmap xatp = {
         .domid = DOMID_SELF,
-        .idx = 0,
         .space = XENMAPSPACE_shared_info,
-        .gpfn = frame >> PAGE_SHIFT,
     };
 
-    if ( !e820_add_range(e820, frame, frame + PAGE_SIZE, E820_RESERVED) )
-        panic("Failed to reserve shared_info range");
+    if ( hypervisor_alloc_unused_page(&mfn) )
+        panic("unable to reserve shared info memory page");
 
+    xatp.gpfn = mfn_x(mfn);
     if ( xen_hypercall_memory_op(XENMEM_add_to_physmap, &xatp) )
         panic("Failed to map shared_info page");
 
-    set_fixmap(FIX_XEN_SHARED_INFO, frame);
+    set_fixmap(FIX_XEN_SHARED_INFO, mfn_x(mfn) << PAGE_SHIFT);
 }
 
 static void xen_evtchn_upcall(struct cpu_user_regs *regs)
@@ -187,14 +186,11 @@ static void __init init_memmap(void)
     }
 }
 
-void __init hypervisor_early_setup(struct e820map *e820)
-{
-    map_shared_info(e820);
-}
-
 void __init hypervisor_setup(void)
 {
     init_memmap();
+
+    map_shared_info();
 
     init_evtchn();
 }
