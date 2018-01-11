@@ -964,34 +964,28 @@ static unsigned long get_cmos_time(void)
     return mktime(rtc.year, rtc.mon, rtc.day, rtc.hour, rtc.min, rtc.sec);
 }
 
-static unsigned long noinline get_xen_wallclock_time(void)
-{
-#ifdef CONFIG_XEN_GUEST
-    struct shared_info *sh_info = XEN_shared_info;
-    uint32_t wc_version;
-    uint64_t wc_sec;
-
-    do {
-        wc_version = sh_info->wc_version & ~1;
-        smp_rmb();
-
-        wc_sec  = sh_info->wc_sec;
-        smp_rmb();
-    } while ( wc_version != sh_info->wc_version );
-
-    return wc_sec + read_xen_timer() / 1000000000;
-#else
-    ASSERT_UNREACHABLE();
-    return 0;
-#endif
-}
-
 static unsigned long get_wallclock_time(void)
 {
-    if ( !xen_guest )
-        return get_cmos_time();
-    else
-        return get_xen_wallclock_time();
+#ifdef CONFIG_XEN_GUEST
+    if ( xen_guest )
+    {
+        struct shared_info *sh_info = XEN_shared_info;
+        uint32_t wc_version;
+        uint64_t wc_sec;
+
+        do {
+            wc_version = sh_info->wc_version & ~1;
+            smp_rmb();
+
+            wc_sec  = sh_info->wc_sec;
+            smp_rmb();
+        } while ( wc_version != sh_info->wc_version );
+
+        return wc_sec + read_xen_timer() / 1000000000;
+    }
+#endif
+
+    return get_cmos_time();
 }
 
 /***************************************************************************
