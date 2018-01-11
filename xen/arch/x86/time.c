@@ -558,8 +558,8 @@ static int64_t __init init_xen_timer(struct platform_timesource *pts)
     return pts->frequency;
 }
 
-static always_inline uint64_t __read_cycle(const struct vcpu_time_info *info,
-                                           u64 tsc)
+static always_inline uint64_t read_cycle(const struct vcpu_time_info *info,
+                                         uint64_t tsc)
 {
     uint64_t delta = tsc - info->tsc_timestamp;
     struct time_scale ts = {
@@ -571,20 +571,20 @@ static always_inline uint64_t __read_cycle(const struct vcpu_time_info *info,
     return info->system_time + offset;
 }
 
-static uint64_t last_value;
 static uint64_t read_xen_timer(void)
 {
     struct vcpu_time_info *info = &this_cpu(vcpu_info)->time;
     uint32_t version;
     uint64_t ret;
     uint64_t last;
+    static uint64_t last_value;
 
     do {
         version = info->version & ~1;
         /* Make sure version is read before the data */
         smp_rmb();
 
-        ret = __read_cycle(info, rdtsc_ordered());
+        ret = read_cycle(info, rdtsc_ordered());
         /* Ignore fancy flags for now */
 
         /* Make sure version is reread after the data */
