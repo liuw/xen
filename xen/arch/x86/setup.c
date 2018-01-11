@@ -617,12 +617,11 @@ static void __init noreturn reinit_bsp_stack(void)
     reset_stack_and_jump(init_done);
 }
 
-static bool __init loader_is_grub1(const char *loader_name)
+static bool __init loader_is_grub2(const char *loader_name)
 {
     /* GRUB1="GNU GRUB 0.xx"; GRUB2="GRUB 1.xx" */
     const char *p = strstr(loader_name, "GRUB ");
-
-    return p && p[5] == '0';
+    return (p != NULL) && (p[5] != '0');
 }
 
 static char * __init cmdline_cook(char *p, const char *loader_name)
@@ -633,10 +632,11 @@ static char * __init cmdline_cook(char *p, const char *loader_name)
     while ( *p == ' ' )
         p++;
 
-    if ( !loader_is_grub1(loader_name) )
+    /* GRUB2 does not include image name as first item on command line. */
+    if ( loader_is_grub2(loader_name) )
         return p;
 
-    /* GRUB1 includes the image name as first item on command line. Strip it. */
+    /* Strip image name plus whitespace. */
     while ( (*p != ' ') && (*p != '\0') )
         p++;
     while ( *p == ' ' )
