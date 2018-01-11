@@ -75,11 +75,10 @@ static void __init get_memory_map(void)
 {
     struct xen_memory_map memmap = {
         .nr_entries = E820MAX,
-        .buffer.p = e820_raw.map,
     };
-    int rc = xen_hypercall_memory_op(XENMEM_memory_map, &memmap);
 
-    ASSERT(rc == 0);
+    set_xen_guest_handle(memmap.buffer, e820_raw.map);
+    BUG_ON(xen_hypercall_memory_op(XENMEM_memory_map, &memmap));
     e820_raw.nr_map = memmap.nr_entries;
 
     /* :( Various toolstacks don't sort the memory map. */
