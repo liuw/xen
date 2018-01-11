@@ -30,6 +30,7 @@
 #include <xen/hypercall.h> /* for do_console_io */
 #include <xen/early_printk.h>
 #include <xen/warning.h>
+#include <asm/guest.h>
 
 /* console: comma-separated list of console outputs. */
 static char __initdata opt_console[30] = OPT_CONSOLE_STR;
@@ -82,6 +83,8 @@ static uint32_t __read_mostly conring_size = _CONRING_SIZE;
 static uint32_t conringc, conringp;
 
 static int __read_mostly sercon_handle = -1;
+
+static bool __read_mostly opt_console_xen; /* console=xen */
 
 static DEFINE_SPINLOCK(console_lock);
 
@@ -432,6 +435,14 @@ static void notify_dom0_con_ring(unsigned long unused)
 static DECLARE_SOFTIRQ_TASKLET(notify_dom0_con_ring_tasklet,
                                notify_dom0_con_ring, 0);
 
+static inline void xen_console_write_debug_port(const char *buf, size_t len)
+{
+    unsigned long tmp;
+    asm volatile ( "rep outsb;"
+                   : "=&S" (tmp), "=&c" (tmp)
+                   : "0" (buf), "1" (len), "d" (0xe9) );
+}
+
 static long guest_console_write(XEN_GUEST_HANDLE_PARAM(char) buffer, int count)
 {
     char kbuf[128];
@@ -457,6 +468,16 @@ static long guest_console_write(XEN_GUEST_HANDLE_PARAM(char) buffer, int count)
 
             sercon_puts(kbuf);
             video_puts(kbuf);
+
+            if ( opt_console_xen )
+            {
+                size_t len = strlen(kbuf);
+
+                if ( xen_guest )
+                    xen_hypercall_console_write(kbuf, len);
+                else
+                    xen_console_write_debug_port(kbuf, len);
+            }
 
             if ( opt_console_to_ring )
             {
@@ -566,6 +587,16 @@ static void __putstr(const char *str)
 
     sercon_puts(str);
     video_puts(str);
+
+    if ( opt_console_xen )
+    {
+        size_t len = strlen(str);
+
+        if ( xen_guest )
+            xen_hypercall_console_write(str, len);
+        else
+            xen_console_write_debug_port(str, len);
+    }
 
     conring_puts(str);
 
@@ -762,6 +793,8 @@ void __init console_init_preirq(void)
             p++;
         if ( !strncmp(p, "vga", 3) )
             video_init();
+        else if ( !strncmp(p, "xen", 3) )
+            opt_console_xen = true;
         else if ( !strncmp(p, "none", 4) )
             continue;
         else if ( (sh = serial_parse_handle(p)) >= 0 )
