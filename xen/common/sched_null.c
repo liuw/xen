@@ -574,6 +574,8 @@ static void null_vcpu_wake(const struct scheduler *ops, struct vcpu *v)
     {
         /* Not exactly "on runq", but close enough for reusing the counter */
         SCHED_STAT_CRANK(vcpu_wake_onrunq);
+        /* Force a rescheduling in case some CPU is idle can pick this vCPU */
+        cpumask_raise_softirq(&cpu_online_map, SCHEDULE_SOFTIRQ);
         return;
     }
 
@@ -761,9 +763,10 @@ static struct task_slice null_schedule(const struct scheduler *ops,
     /*
      * We may be new in the cpupool, or just coming back online. In which
      * case, there may be vCPUs in the waitqueue that we can assign to us
-     * and run.
+     * and run. Also check whether this CPU is running idle, in which case try
+     * to pick a vCPU from the waitqueue.
      */
-    if ( unlikely(ret.task == NULL) )
+    if ( unlikely(ret.task == NULL || ret.task == idle_vcpu[cpu]) )
     {
         spin_lock(&prv->waitq_lock);
 
@@ -781,6 +784,10 @@ static struct task_slice null_schedule(const struct scheduler *ops,
         {
             list_for_each_entry( wvc, &prv->waitq, waitq_elem )
             {
+                if ( test_bit(_VPF_down, &wvc->vcpu->pause_flags) )
+                    /* Skip vCPUs that are down. */
+                    continue;
+
                 if ( bs == BALANCE_SOFT_AFFINITY &&
                      !has_soft_affinity(wvc->vcpu, wvc->vcpu->cpu_hard_affinity) )
                     continue;
