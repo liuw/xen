@@ -35,6 +35,8 @@ int pv_alloc_page_type(struct page_info *page, unsigned long type,
                        bool preemptible);
 int pv_free_page_type(struct page_info *page, unsigned long type,
                       bool preemptible);
+int pv_put_final_page_type(struct page_info *page, unsigned long type,
+                           bool preemptible, struct page_info *ptpg);
 #else
 
 #include <xen/errno.h>
@@ -61,6 +63,11 @@ static inline int pv_alloc_page_type(struct page_info *page, unsigned long type,
 { ASSERT_UNREACHABLE(); return -EINVAL; }
 static inline int pv_free_page_type(struct page_info *page, unsigned long type,
                                     bool preemptible)
+{ ASSERT_UNREACHABLE(); return -EINVAL; }
+static inline int pv_put_final_page_type(struct page_info *page,
+                                         unsigned long type,
+                                         bool preemptible,
+                                         struct page_info *ptpg)
 { ASSERT_UNREACHABLE(); return -EINVAL; }
 
 #endif

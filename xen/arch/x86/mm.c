@@ -2414,8 +2414,8 @@ int pv_free_page_type(struct page_info *page, unsigned long type,
 }
 
 
-static int _put_final_page_type(struct page_info *page, unsigned long type,
-                                bool preemptible, struct page_info *ptpg)
+int pv_put_final_page_type(struct page_info *page, unsigned long type,
+                           bool preemptible, struct page_info *ptpg)
 {
     int rc = pv_free_page_type(page, type, preemptible);
 
@@ -2474,6 +2474,12 @@ static int _put_page_type(struct page_info *page, bool preemptible,
                 int rc;
 
                 /*
+                 * Only PV guests can enter this branch. HAP guests
+                 * can't use those page types.
+                 */
+                ASSERT(is_pv_domain(page_get_owner(page)));
+
+                /*
                  * Page-table pages must be unvalidated when count is zero. The
                  * 'free' is safe because the refcnt is non-zero and validated
                  * bit is clear => other ops will spin or fail.
@@ -2483,7 +2489,7 @@ static int _put_page_type(struct page_info *page, bool preemptible,
                                            x, nx)) != x) )
                     continue;
                 /* We cleared the 'valid bit' so we do the clean up. */
-                rc = _put_final_page_type(page, x, preemptible, ptpg);
+                rc = pv_put_final_page_type(page, x, preemptible, ptpg);
                 if ( x & PGT_partial )
                     put_page(page);
 
@@ -2497,7 +2503,7 @@ static int _put_page_type(struct page_info *page, bool preemptible,
                  * linear_pt_count lives in. Pages (including page table ones),
                  * however, don't need their flush time stamp set except when
                  * the last reference is being dropped. For page table pages
-                 * this happens in _put_final_page_type().
+                 * this happens in pv_put_final_page_type().
                  */
                 set_tlbflush_timestamp(page);
             }
