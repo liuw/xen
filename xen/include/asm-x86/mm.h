@@ -371,8 +371,10 @@ int page_lock(struct page_info *page);
 void page_unlock(struct page_info *page);
 
 void put_page_type(struct page_info *page);
+int  put_page_type_ptpg(struct page_info *page, struct page_info *ptpg);
 int  get_page_type(struct page_info *page, unsigned long type);
 int  put_page_type_preemptible(struct page_info *page);
+int  put_page_type_ptpg_preemptible(struct page_info *page, struct page_info *ptpg);
 int  get_page_type_preemptible(struct page_info *page, unsigned long type);
 int  put_old_guest_table(struct vcpu *);
 int  get_page_from_l1e(

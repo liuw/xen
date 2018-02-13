@@ -1137,9 +1137,6 @@ get_page_from_l4e(
     return rc;
 }
 
-static int _put_page_type(struct page_info *page, bool preemptible,
-                          struct page_info *ptpg);
-
 void put_page_from_l1e(l1_pgentry_t l1e, struct domain *l1e_owner)
 {
     unsigned long     pfn = l1e_get_pfn(l1e);
@@ -1223,7 +1220,7 @@ static int put_page_from_l2e(l2_pgentry_t l2e, unsigned long pfn)
     else
     {
         struct page_info *pg = l2e_get_page(l2e);
-        int rc = _put_page_type(pg, false, mfn_to_page(_mfn(pfn)));
+        int rc = put_page_type_ptpg(pg, mfn_to_page(_mfn(pfn)));
 
         ASSERT(!rc);
         put_page(pg);
@@ -1259,7 +1256,7 @@ static int put_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn,
     if ( unlikely(partial > 0) )
     {
         ASSERT(!defer);
-        return _put_page_type(pg, true, mfn_to_page(_mfn(pfn)));
+        return put_page_type_ptpg_preemptible(pg, mfn_to_page(_mfn(pfn)));
     }
 
     if ( defer )
@@ -1269,7 +1266,7 @@ static int put_page_from_l3e(l3_pgentry_t l3e, unsigned long pfn,
         return 0;
     }
 
-    rc = _put_page_type(pg, true, mfn_to_page(_mfn(pfn)));
+    rc = put_page_type_ptpg_preemptible(pg, mfn_to_page(_mfn(pfn)));
     if ( likely(!rc) )
         put_page(pg);
 
@@ -1289,7 +1286,7 @@ static int put_page_from_l4e(l4_pgentry_t l4e, unsigned long pfn,
         if ( unlikely(partial > 0) )
         {
             ASSERT(!defer);
-            return _put_page_type(pg, true, mfn_to_page(_mfn(pfn)));
+            return put_page_type_ptpg_preemptible(pg, mfn_to_page(_mfn(pfn)));
         }
 
         if ( defer )
@@ -1299,7 +1296,7 @@ static int put_page_from_l4e(l4_pgentry_t l4e, unsigned long pfn,
             return 0;
         }
 
-        rc = _put_page_type(pg, true, mfn_to_page(_mfn(pfn)));
+        rc = put_page_type_ptpg_preemptible(pg, mfn_to_page(_mfn(pfn)));
         if ( likely(!rc) )
             put_page(pg);
     }
@@ -2722,6 +2719,17 @@ int put_page_type_preemptible(struct page_info *page)
     return _put_page_type(page, true, NULL);
 }
 
+int put_page_type_ptpg_preemptible(struct page_info *page,
+                                   struct page_info *ptpg)
+{
+    return _put_page_type(page, true, ptpg);
+}
+
+int put_page_type_ptpg(struct page_info *page, struct page_info *ptpg)
+{
+    return _put_page_type(page, false, ptpg);
+}
+
 int get_page_type_preemptible(struct page_info *page, unsigned long type)
 {
     ASSERT(!current->arch.old_guest_table);
@@ -2736,8 +2744,8 @@ int put_old_guest_table(struct vcpu *v)
     if ( !v->arch.old_guest_table )
         return 0;
 
-    switch ( rc = _put_page_type(v->arch.old_guest_table, true,
-                                 v->arch.old_guest_ptpg) )
+    switch ( rc = put_page_type_ptpg_preemptible(v->arch.old_guest_table,
+                                                 v->arch.old_guest_ptpg) )
     {
     case -EINTR:
     case -ERESTART:
