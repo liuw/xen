@@ -37,6 +37,8 @@ int pv_free_page_type(struct page_info *page, unsigned long type,
                       bool preemptible);
 int pv_put_final_page_type(struct page_info *page, unsigned long type,
                            bool preemptible, struct page_info *ptpg);
+void pv_dec_linear_pt(struct page_info *ptpg, struct page_info *page,
+                      unsigned long type);
 #else
 
 #include <xen/errno.h>
@@ -69,6 +71,9 @@ static inline int pv_put_final_page_type(struct page_info *page,
                                          bool preemptible,
                                          struct page_info *ptpg)
 { ASSERT_UNREACHABLE(); return -EINVAL; }
+
+static inline void pv_dec_linear_pt(struct page_info *ptpg, struct page_info *page,
+                                    unsigned long type) {}
 
 #endif
 

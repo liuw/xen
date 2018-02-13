@@ -2413,6 +2413,18 @@ int pv_free_page_type(struct page_info *page, unsigned long type,
     return rc;
 }
 
+void pv_dec_linear_pt(struct page_info *ptpg, struct page_info *page,
+                      unsigned long type)
+{
+    if ( ptpg && PGT_type_equal(type, ptpg->u.inuse.type_info) )
+    {
+        ASSERT(is_pv_domain(page_get_owner(page)));
+        ASSERT(is_pv_domain(page_get_owner(ptpg)));
+
+        dec_linear_uses(page);
+        dec_linear_entries(ptpg);
+    }
+}
 
 int pv_put_final_page_type(struct page_info *page, unsigned long type,
                            bool preemptible, struct page_info *ptpg)
@@ -2422,11 +2434,7 @@ int pv_put_final_page_type(struct page_info *page, unsigned long type,
     /* No need for atomic update of type_info here: noone else updates it. */
     if ( rc == 0 )
     {
-        if ( ptpg && PGT_type_equal(type, ptpg->u.inuse.type_info) )
-        {
-            dec_linear_uses(page);
-            dec_linear_entries(ptpg);
-        }
+        pv_dec_linear_pt(ptpg, page, type);
         ASSERT(!page->linear_pt_count || page_get_owner(page)->is_dying);
         set_tlbflush_timestamp(page);
         smp_wmb();
@@ -2449,7 +2457,6 @@ int pv_put_final_page_type(struct page_info *page, unsigned long type,
 
     return rc;
 }
-
 
 static int _put_page_type(struct page_info *page, bool preemptible,
                           struct page_info *ptpg)
@@ -2533,11 +2540,7 @@ static int _put_page_type(struct page_info *page, bool preemptible,
             return -EINTR;
     }
 
-    if ( ptpg && PGT_type_equal(x, ptpg->u.inuse.type_info) )
-    {
-        dec_linear_uses(page);
-        dec_linear_entries(ptpg);
-    }
+    pv_dec_linear_pt(ptpg, page, x);
 
     return 0;
 }
