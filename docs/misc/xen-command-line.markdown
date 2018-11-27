@@ -1993,12 +1993,6 @@ pages) must also be specified via the tbuf\_size parameter.
 ### timer\_slop
 > `= <integer>`
 
-### tmem
-> `= <boolean>`
-
-### tmem\_compress
-> `= <boolean>`
-
 ### tsc (x86)
 > `= unstable | skewed | stable:socket`
 
