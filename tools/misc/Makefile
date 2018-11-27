@@ -24,7 +24,6 @@ INSTALL_SBIN-$(CONFIG_X86)     += xen-hvmctx
 INSTALL_SBIN-$(CONFIG_X86)     += xen-lowmemd
 INSTALL_SBIN-$(CONFIG_X86)     += xen-mfndump
 INSTALL_SBIN                   += xen-ringwatch
-INSTALL_SBIN                   += xen-tmem-list-parse
 INSTALL_SBIN                   += xencov
 INSTALL_SBIN                   += xenlockprof
 INSTALL_SBIN                   += xenperf
