@@ -74,9 +74,6 @@ const hypercall_table_t pv_hypercall_table[] = {
 #ifdef CONFIG_KEXEC
     COMPAT_CALL(kexec_op),
 #endif
-#ifdef CONFIG_TMEM
-    HYPERCALL(tmem_op),
-#endif
     HYPERCALL(xenpmu_op),
 #ifdef CONFIG_HVM
     HYPERCALL(hvm_op),

@@ -71,10 +71,6 @@ obj-bin-$(CONFIG_X86) += $(foreach n,decompress bunzip2 unxz unlzma unlzo unlz4 
 
 obj-$(CONFIG_COMPAT) += $(addprefix compat/,domain.o kernel.o memory.o multicall.o xlat.o)
 
-tmem-y := tmem.o tmem_xen.o tmem_control.o
-tmem-$(CONFIG_COMPAT) += compat/tmem_xen.o
-obj-$(CONFIG_TMEM) += $(tmem-y)
-
 extra-y := symbols-dummy.o
 
 subdir-$(CONFIG_COVERAGE) += coverage
