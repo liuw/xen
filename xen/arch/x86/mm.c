@@ -365,8 +365,10 @@ void __init arch_init_memory(void)
             ASSERT(root_pgt_pv_xen_slots < ROOT_PAGETABLE_PV_XEN_SLOTS);
             if ( l4_table_offset(split_va) == l4_table_offset(split_va - 1) )
             {
-                l3_pgentry_t *l3tab = alloc_xen_pagetable();
-
+                l3_pgentry_t *l3tab;
+                printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
+                l3tab = alloc_xen_pagetable();
+                printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
                 if ( l3tab )
                 {
                     const l3_pgentry_t *l3idle =
@@ -4764,8 +4766,10 @@ void *alloc_xen_pagetable(void)
 {
     if ( system_state != SYS_STATE_early_boot )
     {
-        void *ptr = alloc_xenheap_page();
-
+        void *ptr;
+        printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+        ptr = alloc_xenheap_page();
+        printk(" XXXX %s:%d %p\n", __FILE__, __LINE__, ptr);
         BUG_ON(!hardware_domain && !ptr);
         return ptr;
     }
@@ -4789,8 +4793,10 @@ static l3_pgentry_t *virt_to_xen_l3e(unsigned long v)
     if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l3_pgentry_t *pl3e = alloc_xen_pagetable();
-
+        l3_pgentry_t *pl3e;
+        printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
+        pl3e = alloc_xen_pagetable();
+        printk(" XXXX %s:%s:%d %p\n", __FILE__, __func__,  __LINE__, pl3e);
         if ( !pl3e )
             return NULL;
         clear_page(pl3e);
@@ -4824,8 +4830,10 @@ static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
     if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l2_pgentry_t *pl2e = alloc_xen_pagetable();
-
+        l2_pgentry_t *pl2e;
+        printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
+        pl2e= alloc_xen_pagetable();
+        printk(" XXXX %s:%s:%d %p\n", __FILE__, __func__,  __LINE__, pl2e);
         if ( !pl2e )
             return NULL;
         clear_page(pl2e);
@@ -4857,8 +4865,10 @@ l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
     if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l1_pgentry_t *pl1e = alloc_xen_pagetable();
-
+        l1_pgentry_t *pl1e;
+        printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
+        pl1e = alloc_xen_pagetable();
+        printk(" XXXX %s:%s:%d %p\n", __FILE__, __func__,  __LINE__, pl1e);
         if ( !pl1e )
             return NULL;
         clear_page(pl1e);
@@ -5007,8 +5017,9 @@ int map_pages_to_xen(
                 nr_mfns -= i;
                 continue;
             }
-
+            printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
             pl2e = alloc_xen_pagetable();
+            printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
             if ( pl2e == NULL )
                 return -ENOMEM;
 
@@ -5106,8 +5117,9 @@ int map_pages_to_xen(
                     nr_mfns -= i;
                     goto check_l3;
                 }
-
+                printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
                 pl1e = alloc_xen_pagetable();
+                printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
                 if ( pl1e == NULL )
                     return -ENOMEM;
 

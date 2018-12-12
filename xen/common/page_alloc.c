@@ -2189,17 +2189,18 @@ void *alloc_xenheap_pages(unsigned int order, unsigned int memflags)
         memflags &= ~MEMF_bits(~0U);
     if ( !(memflags >> _MEMF_bits) )
         memflags |= MEMF_bits(xenheap_bits);
-
+    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     pg = alloc_domheap_pages(NULL, order, memflags | MEMF_no_scrub);
     if ( unlikely(pg == NULL) )
         return NULL;
-
+    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     for ( i = 0; i < (1u << order); i++ )
         pg[i].count_info |= PGC_xen_heap;
-
+    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     mfn = page_to_mfn(pg);
-
+    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     v = vmap(&mfn, 1u << order);
+    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     /* The assumption is xenheap is always mapped */
     ASSERT(v);
     return v;
