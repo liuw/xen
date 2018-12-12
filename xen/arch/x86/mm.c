@@ -4789,6 +4789,7 @@ static l3_pgentry_t *virt_to_xen_l3e(unsigned long v)
 {
     l4_pgentry_t *pl4e;
 
+    printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
     pl4e = &idle_pg_table[l4_table_offset(v)];
     if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
     {
@@ -4823,6 +4824,7 @@ static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
 {
     l3_pgentry_t *pl3e;
 
+    printk(" XXXX %s:%s:%d\n", __FILE__, __func__,  __LINE__);
     pl3e = virt_to_xen_l3e(v);
     if ( !pl3e )
         return NULL;
@@ -4876,6 +4878,7 @@ l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
             spin_lock(&map_pgdir_lock);
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
         {
+            /* XXX HERE __pa */
             l2e_write(pl2e, l2e_from_paddr(__pa(pl1e), __PAGE_HYPERVISOR));
             pl1e = NULL;
         }
