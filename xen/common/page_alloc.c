@@ -2181,6 +2181,7 @@ void *alloc_xenheap_pages(unsigned int order, unsigned int memflags)
 {
     struct page_info *pg;
     unsigned int i;
+    mfn_t mfn;
     void *head, *linear;
 
     ASSERT(!in_irq());
@@ -2194,7 +2195,11 @@ void *alloc_xenheap_pages(unsigned int order, unsigned int memflags)
     if ( unlikely(pg == NULL) )
         return NULL;
 
-    head = page_to_virt(pg);
+    mfn = page_to_mfn(pg);
+
+    head = vmap_order(mfn, order);
+    /* The assumption is xenheap is always mapped */
+    ASSERT(head);
     for ( i = 0, linear = head; i < (1u << order);
           i++, linear += PAGE_SIZE )
     {
@@ -2209,16 +2214,30 @@ void free_xenheap_pages(void *v, unsigned int order)
 {
     struct page_info *pg;
     unsigned int i;
+    unsigned long va = (unsigned long)v;
 
     ASSERT(!in_irq());
 
     if ( v == NULL )
         return;
 
-    pg = virt_to_page(v);
+    ASSERT(va >= VMAP_VIRT_START && va < VMAP_VIRT_END);
+
+    /*
+     * We need to fish the mfns out from the va supplied.  Only the
+     * first page_info is needed because we're sure they are
+     * contiguous.
+     *
+     * This needs to be done before vunmap because PTEs will have been
+     * clobbered after vunmap.
+     */
+    pg = vmap_to_page(va);
+
+    vunmap(v);
 
     for ( i = 0; i < (1u << order); i++ )
     {
+        ASSERT(pg[i].count_info & PGC_xen_heap);
         pg[i].count_info &= ~PGC_xen_heap;
         set_page_address(pg, NULL);
     }
