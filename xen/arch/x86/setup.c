@@ -1499,36 +1499,34 @@ void __init noreturn __start_xen(unsigned long mbi_p)
 
     system_state = SYS_STATE_boot;
 
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     console_init_ring();
     vesa_init();
 
     softirq_init();
     tasklet_subsys_init();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     early_cpu_init();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     paging_init();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     tboot_probe();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     open_softirq(NEW_TLBFLUSH_CLOCK_PERIOD_SOFTIRQ, new_tlbflush_clock_period);
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     if ( opt_watchdog ) 
         nmi_watchdog = NMI_LOCAL_APIC;
 
     find_smp_config();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     dmi_scan_machine();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     generic_apic_probe();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     mmio_ro_ranges = rangeset_new(NULL, "r/o mmio ranges",
                                   RANGESETF_prettyprint_hex);
 
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     acpi_boot_init();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     if ( smp_found_config )
         get_smp_config();
 
@@ -1560,11 +1558,11 @@ void __init noreturn __start_xen(unsigned long mbi_p)
     zap_low_mappings();
 
     init_apic_mappings();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     normalise_cpu_order();
 
     init_cpu_to_node();
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     x2apic_bsp_setup();
 
     ret = init_irq_data();
