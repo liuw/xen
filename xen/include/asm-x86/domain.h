@@ -497,9 +497,6 @@ struct arch_domain
 
 struct pv_vcpu
 {
-    /* map_domain_page() mapping cache. */
-    struct mapcache_vcpu mapcache;
-
     struct trap_info *trap_ctxt;
 
     unsigned long gdt_frames[FIRST_RESERVED_GDT_PAGE];
@@ -579,6 +576,9 @@ struct arch_vcpu
     unsigned long      flags; /* TF_ */
 
     struct vpmu_struct vpmu;
+
+    /* map_domain_page() mapping cache. */
+    struct mapcache_vcpu mapcache;
 
     /* Virtual Machine Extensions */
     union {
