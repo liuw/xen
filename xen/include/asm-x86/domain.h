@@ -263,9 +263,6 @@ struct pv_domain
     /* Mitigate L1TF with shadow/crashing? */
     bool check_l1tf;
 
-    /* map_domain_page() mapping cache. */
-    struct mapcache_domain mapcache;
-
     struct cpuidmasks *cpuidmasks;
 };
 
@@ -301,6 +298,9 @@ struct arch_domain
     bool_t s3_integrity;
 
     struct list_head pdev_list;
+
+    /* map_domain_page() mapping cache. */
+    struct mapcache_domain mapcache;
 
     union {
         struct pv_domain pv;
