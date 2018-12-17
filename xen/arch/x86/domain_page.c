@@ -309,20 +309,12 @@ void *map_domain_page_global(mfn_t mfn)
              system_state < SYS_STATE_active) ||
             local_irq_is_enabled()));
 
-#ifdef NDEBUG
-    if ( mfn_x(mfn) <= PFN_DOWN(__pa(HYPERVISOR_VIRT_END - 1)) )
-        return mfn_to_virt(mfn_x(mfn));
-#endif
-
     return vmap(&mfn, 1);
 }
 
 void unmap_domain_page_global(const void *ptr)
 {
     unsigned long va = (unsigned long)ptr;
-
-    if ( va >= DIRECTMAP_VIRT_START )
-        return;
 
     ASSERT(va >= VMAP_VIRT_START && va < VMAP_VIRT_END);
 
