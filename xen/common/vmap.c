@@ -112,7 +112,7 @@ static void *vm_alloc(unsigned int nr, unsigned int align,
         if ( start >= vm_top[t] )
         {
             unsigned long va = (unsigned long)vm_bitmap(t) + vm_top[t] / 8;
-            printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
             if ( !map_pages_to_xen(va, page_to_mfn(pg), 1, PAGE_HYPERVISOR) )
             {
                 clear_page((void *)va);
@@ -122,7 +122,7 @@ static void *vm_alloc(unsigned int nr, unsigned int align,
                 continue;
             }
         }
-        printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
         free_domheap_page(pg);
 
         if ( start >= vm_top[t] )
@@ -214,18 +214,11 @@ void *__vmap(const mfn_t *mfn, unsigned int granularity,
 
     for ( ; va && nr--; ++mfn, cur += PAGE_SIZE * granularity )
     {
-        int rc;
-        printk(" XXXX %s:%d\n", __FILE__, __LINE__);
-        printk("    XXX map %lx, %"PRI_mfn", %u, %x\n", cur, mfn_x(*mfn),
-               granularity, flags);
-        rc = map_pages_to_xen(cur, *mfn, granularity, flags);
-        if ( rc )
+        if ( map_pages_to_xen(cur, *mfn, granularity, flags) )
         {
-            printk(" XXX rc = %d\n", rc);
             vunmap(va);
             va = NULL;
         }
-        printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     }
 
     return va;

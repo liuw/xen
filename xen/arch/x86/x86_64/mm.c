@@ -511,10 +511,8 @@ void __init paging_init(void)
         if ( !(l4e_get_flags(idle_pg_table[l4_table_offset(va)]) &
               _PAGE_PRESENT) )
         {
-            l3_pgentry_t *pl3t;
-            printk(" XXXX %s:%d\n", __FILE__, __LINE__);
-            pl3t = alloc_xen_pagetable();
-            printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+            l3_pgentry_t *pl3t = alloc_xen_pagetable();
+
             if ( !pl3t )
                 goto nomem;
             clear_page(pl3t);
@@ -522,16 +520,14 @@ void __init paging_init(void)
                       l4e_from_paddr(__pa(pl3t), __PAGE_HYPERVISOR_RW));
         }
     }
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     /* Create user-accessible L2 directory to map the MPT for guests. */
     if ( (l3_ro_mpt = alloc_xen_pagetable()) == NULL )
         goto nomem;
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     clear_page(l3_ro_mpt);
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
     l4e_write(&idle_pg_table[l4_table_offset(RO_MPT_VIRT_START)],
               l4e_from_paddr(__pa(l3_ro_mpt), __PAGE_HYPERVISOR_RO | _PAGE_USER));
-    printk(" XXXX %s:%d\n", __FILE__, __LINE__);
+
     /*
      * Allocate and map the machine-to-phys table.
      * This also ensures L3 is present for fixmaps.
@@ -569,7 +565,6 @@ void __init paging_init(void)
                 i += (1UL << PAGETABLE_ORDER) - 1;
                 continue;
             }
-            printk(" XXXX %s:%d\n", __FILE__, __LINE__);
             if ( holes == 0 &&
                  (l1_pg = alloc_domheap_pages(NULL, 2 * PAGETABLE_ORDER,
                                               memflags)) != NULL )

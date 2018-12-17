@@ -315,13 +315,6 @@ static inline struct page_info *__virt_to_page(const void *v)
 
     ASSERT(va >= XEN_VIRT_START);
     ASSERT(va < DIRECTMAP_VIRT_END);
-
-#if 0
-    /* XXX interaction with the rest? See config.h for whole map. */
-    if ( va >= VMAP_VIRT_START && va < VMAP_VIRT_END )
-        return vmap_to_page(va);
-#endif
-
     if ( va < XEN_VIRT_END )
         va += DIRECTMAP_VIRT_START - XEN_VIRT_START + xen_phys_start;
     else
