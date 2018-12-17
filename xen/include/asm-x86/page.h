@@ -260,18 +260,14 @@ void copy_page_sse2(void *, const void *);
  * overridden in various source files while underscored versions remain intact.
  */
 #define mfn_valid(mfn)      __mfn_valid(mfn_x(mfn))
-
-/* XXX xen heap */
 #define virt_to_mfn(va)     __virt_to_mfn(va)
 #define mfn_to_virt(mfn)    __mfn_to_virt(mfn)
 #define virt_to_maddr(va)   __virt_to_maddr((unsigned long)(va))
 #define maddr_to_virt(ma)   __maddr_to_virt((unsigned long)(ma))
-#define virt_to_page(va)    __virt_to_page(va)
-#define page_to_virt(pg)    __page_to_virt(pg)
-/* XXX xen heap */
-
 #define maddr_to_page(ma)   __maddr_to_page(ma)
 #define page_to_maddr(pg)   __page_to_maddr(pg)
+#define virt_to_page(va)    __virt_to_page(va)
+#define page_to_virt(pg)    __page_to_virt(pg)
 #define pfn_to_paddr(pfn)   __pfn_to_paddr(pfn)
 #define paddr_to_pfn(pa)    __paddr_to_pfn(pa)
 #define paddr_to_pdx(pa)    pfn_to_pdx(paddr_to_pfn(pa))
