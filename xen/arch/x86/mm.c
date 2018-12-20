@@ -2940,9 +2940,9 @@ int vcpu_destroy_pagetables(struct vcpu *v)
     return rc != -EINTR ? rc : -ERESTART;
 }
 
+#ifdef CONFIG_PV
 int new_guest_cr3(mfn_t mfn)
 {
-#ifdef CONFIG_PV
     struct vcpu *curr = current;
     struct domain *d = curr->domain;
     int rc;
@@ -3041,13 +3041,8 @@ int new_guest_cr3(mfn_t mfn)
     }
 
     return rc;
-#else
-    ASSERT_UNREACHABLE();
-    return -EINVAL;
-#endif
 }
 
-#ifdef CONFIG_PV
 static int vcpumask_to_pcpumask(
     struct domain *d, XEN_GUEST_HANDLE_PARAM(const_void) bmap, cpumask_t *pmask)
 {
