@@ -1668,7 +1668,10 @@ void init_xen_l4_slots(l4_pgentry_t *l4t, mfn_t l4mfn,
         d ? l4e_from_page(d->arch.perdomain_l3_pg, __PAGE_HYPERVISOR_RW)
           : l4e_empty();
 
-    /* Slot 261-: text/data/bss, RW M2P, vmap, frametable, directmap. */
+    /* Slot 261: Per-cpu mappings. Filled in when context switching. */
+    l4t[l4_table_offset(PERCPU_VIRT_START)] = l4e_empty();
+
+    /* Slot 262-: text/data/bss, RW M2P, vmap, frametable, directmap. */
 #ifndef NDEBUG
     if ( short_directmap &&
          unlikely(root_pgt_pv_xen_slots < ROOT_PAGETABLE_PV_XEN_SLOTS) )

@@ -131,29 +131,31 @@ extern unsigned char boot_edid_info[128];
  *    Shadow linear page table.
  *  0xffff820000000000 - 0xffff827fffffffff [512GB, 2^39 bytes, PML4:260]
  *    Per-domain mappings (e.g., GDT, LDT).
- *  0xffff828000000000 - 0xffff82bfffffffff [256GB, 2^38 bytes, PML4:261]
+ *  0xffff828000000000 - 0xffff82ffffffffff [512GB, 2^39 bytes, PML4:261]
+ *    Per-cpu mappings (e.g. mapcache).
+ *  0xffff830000000000 - 0xffff833fffffffff [256GB, 2^38 bytes, PML4:262]
  *    Machine-to-phys translation table.
- *  0xffff82c000000000 - 0xffff82cfffffffff [64GB,  2^36 bytes, PML4:261]
+ *  0xffff834000000000 - 0xffff834fffffffff [64GB,  2^36 bytes, PML4:262]
  *    vmap()/ioremap()/fixmap area.
- *  0xffff82d000000000 - 0xffff82d03fffffff [1GB,   2^30 bytes, PML4:261]
+ *  0xffff835000000000 - 0xffff83503fffffff [1GB,   2^30 bytes, PML4:262]
  *    Compatibility machine-to-phys translation table.
- *  0xffff82d040000000 - 0xffff82d07fffffff [1GB,   2^30 bytes, PML4:261]
+ *  0xffff835040000000 - 0xffff83507fffffff [1GB,   2^30 bytes, PML4:262]
  *    High read-only compatibility machine-to-phys translation table.
- *  0xffff82d080000000 - 0xffff82d0bfffffff [1GB,   2^30 bytes, PML4:261]
+ *  0xffff835080000000 - 0xffff8350bfffffff [1GB,   2^30 bytes, PML4:262]
  *    Xen text, static data, bss.
 #ifndef CONFIG_BIGMEM
- *  0xffff82d0c0000000 - 0xffff82dfffffffff [61GB,              PML4:261]
+ *  0xffff8350c0000000 - 0xffff835fffffffff [61GB,              PML4:262]
  *    Reserved for future use.
- *  0xffff82e000000000 - 0xffff82ffffffffff [128GB, 2^37 bytes, PML4:261]
+ *  0xffff836000000000 - 0xffff837fffffffff [128GB, 2^37 bytes, PML4:262]
  *    Page-frame information array.
- *  0xffff830000000000 - 0xffff87ffffffffff [5TB, 5*2^40 bytes, PML4:262-271]
+ *  0xffff838000000000 - 0xffff887fffffffff [4.5TB, 9*2^39 bytes, PML4:263-271]
  *    1:1 direct mapping of all physical memory.
 #else
- *  0xffff82d0c0000000 - 0xffff82ffffffffff [189GB,             PML4:261]
+ *  0xffff8350c0000000 - 0xffff837fffffffff [189GB,             PML4:262]
  *    Reserved for future use.
- *  0xffff830000000000 - 0xffff847fffffffff [1.5TB, 3*2^39 bytes, PML4:262-264]
+ *  0xffff838000000000 - 0xffff84ffffffffff [1.5TB, 3*2^39 bytes, PML4:263-265]
  *    Page-frame information array.
- *  0xffff848000000000 - 0xffff87ffffffffff [3.5TB, 7*2^39 bytes, PML4:265-271]
+ *  0xffff850000000000 - 0xffff87ffffffffff [3TB, 6*2^39 bytes, PML4:266-271]
  *    1:1 direct mapping of all physical memory.
 #endif
  *  0xffff880000000000 - 0xffffffffffffffff [120TB,             PML4:272-511]
@@ -205,27 +207,30 @@ extern unsigned char boot_edid_info[128];
 #define PERDOMAIN_SLOTS         3
 #define PERDOMAIN_VIRT_SLOT(s)  (PERDOMAIN_VIRT_START + (s) * \
                                  (PERDOMAIN_SLOT_MBYTES << 20))
-/* Slot 261: machine-to-phys conversion table (256GB). */
-#define RDWR_MPT_VIRT_START     (PML4_ADDR(261))
+/* Slot 261: per-cpu mappings */
+#define PERCPU_VIRT_START       (PML4_ADDR(261))
+#define PERCPU_VIRT_END         (PERCPU_VIRT_START + PML4_ENTRY_BYTES)
+/* Slot 262: machine-to-phys conversion table (256GB). */
+#define RDWR_MPT_VIRT_START     (PML4_ADDR(262))
 #define RDWR_MPT_VIRT_END       (RDWR_MPT_VIRT_START + MPT_VIRT_SIZE)
-/* Slot 261: vmap()/ioremap()/fixmap area (64GB). */
+/* Slot 262: vmap()/ioremap()/fixmap area (64GB). */
 #define VMAP_VIRT_START         RDWR_MPT_VIRT_END
 #define VMAP_VIRT_END           (VMAP_VIRT_START + GB(64))
-/* Slot 261: compatibility machine-to-phys conversion table (1GB). */
+/* Slot 262: compatibility machine-to-phys conversion table (1GB). */
 #define RDWR_COMPAT_MPT_VIRT_START VMAP_VIRT_END
 #define RDWR_COMPAT_MPT_VIRT_END (RDWR_COMPAT_MPT_VIRT_START + GB(1))
-/* Slot 261: high read-only compat machine-to-phys conversion table (1GB). */
+/* Slot 262: high read-only compat machine-to-phys conversion table (1GB). */
 #define HIRO_COMPAT_MPT_VIRT_START RDWR_COMPAT_MPT_VIRT_END
 #define HIRO_COMPAT_MPT_VIRT_END (HIRO_COMPAT_MPT_VIRT_START + GB(1))
-/* Slot 261: xen text, static data and bss (1GB). */
+/* Slot 262: xen text, static data and bss (1GB). */
 #define XEN_VIRT_START          (HIRO_COMPAT_MPT_VIRT_END)
 #define XEN_VIRT_END            (XEN_VIRT_START + GB(1))
 
 #ifndef CONFIG_BIGMEM
-/* Slot 261: page-frame information array (128GB). */
+/* Slot 262: page-frame information array (128GB). */
 #define FRAMETABLE_SIZE         GB(128)
 #else
-/* Slot 262-264: page-frame information array (1.5TB). */
+/* Slot 263-264: page-frame information array (1.5TB). */
 #define FRAMETABLE_SIZE         GB(1536)
 #endif
 #define FRAMETABLE_VIRT_END     DIRECTMAP_VIRT_START
@@ -233,13 +238,13 @@ extern unsigned char boot_edid_info[128];
 #define FRAMETABLE_VIRT_START   (FRAMETABLE_VIRT_END - FRAMETABLE_SIZE)
 
 #ifndef CONFIG_BIGMEM
-/* Slot 262-271/510: A direct 1:1 mapping of all of physical memory. */
-#define DIRECTMAP_VIRT_START    (PML4_ADDR(262))
-#define DIRECTMAP_SIZE          (PML4_ENTRY_BYTES * (511 - 262))
+/* Slot 263-271/510: A direct 1:1 mapping of all of physical memory. */
+#define DIRECTMAP_VIRT_START    (PML4_ADDR(263))
+#define DIRECTMAP_SIZE          (PML4_ENTRY_BYTES * (511 - 263))
 #else
-/* Slot 265-271/510: A direct 1:1 mapping of all of physical memory. */
-#define DIRECTMAP_VIRT_START    (PML4_ADDR(265))
-#define DIRECTMAP_SIZE          (PML4_ENTRY_BYTES * (511 - 265))
+/* Slot 266-271/510: A direct 1:1 mapping of all of physical memory. */
+#define DIRECTMAP_VIRT_START    (PML4_ADDR(266))
+#define DIRECTMAP_SIZE          (PML4_ENTRY_BYTES * (511 - 266))
 #endif
 #define DIRECTMAP_VIRT_END      (DIRECTMAP_VIRT_START + DIRECTMAP_SIZE)
 
