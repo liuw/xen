@@ -50,6 +50,9 @@ void *pmap_map(struct page_info *page)
     set_fixmap(slot, mfn_x(page_to_mfn(page)));
     linear = (void *)__fix_to_virt(slot);
 
+    printk(" XXX mapping %"PRI_mfn" to %p with idx %u\n",
+           mfn_x(page_to_mfn(page)), linear, idx);
+
     return linear;
 }
 
@@ -65,6 +68,8 @@ void pmap_unmap(void *p)
     idx = slot - FIX_PMAP_BEGIN;
     __clear_bit(idx, &inuse);
     clear_fixmap(slot);
+
+    printk(" XXX unmapping %p with idx %u\n",  p, idx);
 }
 
 static void __maybe_unused build_assertions(void)
