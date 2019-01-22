@@ -4752,13 +4752,13 @@ static l3_pgentry_t *virt_to_xen_l3e(unsigned long v)
 
         if ( !pl3e )
             return NULL;
-        clear_page(pl3e);
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
         {
             l4_pgentry_t l4e = l4e_from_paddr(__pa(pl3e), __PAGE_HYPERVISOR);
 
+            clear_page(pl3e);
             l4e_write(pl4e, l4e);
             efi_update_l4_pgtable(l4_table_offset(v), l4e);
             pl3e = NULL;
@@ -4787,11 +4787,11 @@ static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
 
         if ( !pl2e )
             return NULL;
-        clear_page(pl2e);
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
         {
+            clear_page(pl2e);
             l3e_write(pl3e, l3e_from_paddr(__pa(pl2e), __PAGE_HYPERVISOR));
             pl2e = NULL;
         }
@@ -4820,11 +4820,11 @@ l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
 
         if ( !pl1e )
             return NULL;
-        clear_page(pl1e);
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
         {
+            clear_page(pl1e);
             l2e_write(pl2e, l2e_from_paddr(__pa(pl1e), __PAGE_HYPERVISOR));
             pl1e = NULL;
         }
