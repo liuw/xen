@@ -188,9 +188,11 @@ static inline l4_pgentry_t l4e_from_paddr(paddr_t pa, unsigned int flags)
     ( !!(((x).l4 ^ (y).l4) & ((PADDR_MASK&PAGE_MASK)|put_pte_flags(flags))) )
 
 /* Pagetable walking. */
+#if 0
 #define l2e_to_l1e(x)              ((l1_pgentry_t *)__va(l2e_get_paddr(x)))
 #define l3e_to_l2e(x)              ((l2_pgentry_t *)__va(l3e_get_paddr(x)))
 #define l4e_to_l3e(x)              ((l3_pgentry_t *)__va(l4e_get_paddr(x)))
+#endif
 
 #define map_l1t_from_l2e(x)        (l1_pgentry_t *)map_domain_page(l2e_get_mfn(x))
 #define map_l2t_from_l3e(x)        (l2_pgentry_t *)map_domain_page(l3e_get_mfn(x))
@@ -346,8 +348,9 @@ void efi_update_l4_pgtable(unsigned int l4idx, l4_pgentry_t);
 #ifndef __ASSEMBLY__
 
 /* Allocator functions for Xen pagetables. */
-void *alloc_xen_pagetable(void);
-void free_xen_pagetable(void *v);
+void *alloc_xen_pagetable(struct page **page);
+void unmap_xen_pagetable(void *v, struct page_info *page);
+void free_xen_pagetable(struct page_info *page);
 l1_pgentry_t *virt_to_xen_l1e(unsigned long v);
 
 /* Convert between PAT/PCD/PWT embedded in PTE flags and 3-bit cacheattr. */

@@ -4719,123 +4719,236 @@ int mmcfg_intercept_write(
     return X86EMUL_OKAY;
 }
 
-void *alloc_xen_pagetable(void)
+/* v can point to an entry within a table or NULL */
+void unmap_xen_pagetable(void *v)
 {
-    if ( system_state != SYS_STATE_early_boot )
-    {
-        void *ptr = alloc_xenheap_page();
-
-        BUG_ON(!hardware_domain && !ptr);
-        return ptr;
-    }
-
-    return mfn_to_virt(mfn_x(alloc_boot_pages(1, 1)));
+    if ( system_state != SYS_STATE_early_boot && v )
+        unmap_domain_page(v & PAGE_MASK);
 }
 
-void free_xen_pagetable(void *v)
+void *map_xen_pagetable(mfn_t mfn)
 {
     if ( system_state != SYS_STATE_early_boot )
-        free_xenheap_page(v);
+        return map_domain_page(mfn);
+    else
+        return mfn_to_virt(mfn);
+}
+
+mfn_t alloc_xen_pagetable(void)
+{
+    mfn_t mfn = INVALID_MFN;
+
+    if ( system_state != SYS_STATE_early_boot )
+    {
+        struct page_info *pg = alloc_domheap_page(NULL, MEMF_no_scrub);
+
+        BUG_ON(!hardware_domain && !pg);
+
+        if ( pg )
+            mfn = page_to_mfn(pg);
+    }
+    else
+        mfn = alloc_boot_pages(1, 1);
+
+    return mfn;
+}
+
+void free_xen_pagetable(mfn_t mfn)
+{
+
+    if ( system_state != SYS_STATE_early_boot &&  mfn != INVALID_MFN )
+        free_domheap_page(mfn_to_page(mfn));
 }
 
 static DEFINE_SPINLOCK(map_pgdir_lock);
 
+/*
+ * Given a virtual address, return a pointer to l3 entry. Caller needs
+ * to unmap the pointer with unmap_xen_pagetable.
+ */
 static l3_pgentry_t *virt_to_xen_l3e(unsigned long v)
 {
     l4_pgentry_t *pl4e;
+    l3_pgentry_t *pl3e = NULL;
 
     pl4e = &idle_pg_table[l4_table_offset(v)];
     if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l3_pgentry_t *pl3e = alloc_xen_pagetable();
+        l3_pgentry_t *l3t;
+        mfn_t mfn;
 
-        if ( !pl3e )
-            return NULL;
+        mfn = alloc_xen_pagetable();
+        if ( mfn == INVALID_MFN )
+            goto out;
+
+        l3t = map_xen_pagetable(mfn);
+        if ( !l3t )
+        {
+            free_xen_pagetable(mfn);
+            goto out;
+        }
+
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
         {
-            l4_pgentry_t l4e = l4e_from_paddr(__pa(pl3e), __PAGE_HYPERVISOR);
+            l4_pgentry_t l4e = l4e_from_mfn(mfn, __PAGE_HYPERVISOR);
 
-            clear_page(pl3e);
+            clear_page(l3t);
             l4e_write(pl4e, l4e);
             efi_update_l4_pgtable(l4_table_offset(v), l4e);
-            pl3e = NULL;
+            pl3e = l3t + l3_table_offset(v);
+            l3t = NULL;
         }
         if ( locking )
             spin_unlock(&map_pgdir_lock);
-        if ( pl3e )
-            free_xen_pagetable(pl3e);
+
+        if ( l3t )
+        {
+            ASSERT(!pl3e);
+            ASSERT(mfn != INVALID_MFN);
+            unmap_xen_pagetable(l3t);
+            free_xen_pagetable(mfn);
+        }
     }
 
-    return l4e_to_l3e(*pl4e) + l3_table_offset(v);
+    if ( !pl3e )
+    {
+        ASSERT(l4e_get_flags(*pl4e) & _PAGE_PRESENT);
+        pl3e = map_xen_pagetable(l4e_get_mfn(*pl4e)) + l3_table_offset(v);
+    }
+
+ out:
+    return pl3e;
 }
 
+/*
+ * Given a virtual address, return a pointer to l2 entry. Caller needs
+ * to unmap the pointer with unmap_xen_pagetable.
+ */
 static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
 {
     l3_pgentry_t *pl3e;
+    l2_pgentry_t *pl2e = NULL;
 
     pl3e = virt_to_xen_l3e(v);
     if ( !pl3e )
-        return NULL;
+        goto out;
 
     if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l2_pgentry_t *pl2e = alloc_xen_pagetable();
+        l2_pgentry_t *l2t;
+        mfn_t mfn;
 
-        if ( !pl2e )
-            return NULL;
+        mfn = alloc_xen_pagetable();
+        if ( mfn == INVALID_MFN )
+            goto out;
+
+        l2t = map_xen_pagetable(mfn);
+        if ( !l2t )
+        {
+            free_xen_pagetable(mfn);
+            goto out;
+        }
+
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
         {
-            clear_page(pl2e);
-            l3e_write(pl3e, l3e_from_paddr(__pa(pl2e), __PAGE_HYPERVISOR));
-            pl2e = NULL;
+            clear_page(l2t);
+            l3e_write(pl3e, l3e_from_mfn(mfn, __PAGE_HYPERVISOR));
+            pl2e = l2t + l2_table_offset(v);
+            l2t = NULL;
         }
         if ( locking )
             spin_unlock(&map_pgdir_lock);
-        if ( pl2e )
-            free_xen_pagetable(pl2e);
+
+        if ( l2t )
+        {
+            ASSERT(!pl2e);
+            ASSERT(mfn != INVALID_MFN);
+            unmap_xen_pagetable(l2t);
+            free_xen_pagetable(mfn);
+        }
+    }
+
+    if ( !pl2e )
+    {
+        ASSERT(l3e_get_flags(*pl3e) & _PAGE_PRESENT);
+        pl2e = map_xen_pagetable(l3e_get_mfn(*pl3e)) + l2_table_offset(v);
     }
 
     BUG_ON(l3e_get_flags(*pl3e) & _PAGE_PSE);
-    return l3e_to_l2e(*pl3e) + l2_table_offset(v);
+
+ out:
+    unmap_xen_pagetable(pl3e);
+    return pl2e;
 }
 
+/*
+ * Given a virtual address, return a pointer to l1 entry. Caller needs
+ * to unmap the pointer with unmap_xen_pagetable.
+ */
 l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
 {
     l2_pgentry_t *pl2e;
+    l1_pgetnry_t *pl1e = NULL;
 
     pl2e = virt_to_xen_l2e(v);
     if ( !pl2e )
-        return NULL;
+        goto out;
 
     if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l1_pgentry_t *pl1e = alloc_xen_pagetable();
+        mfn_t mfn;
+        l1_pgentry_t *l1t;
 
-        if ( !pl1e )
-            return NULL;
+        mfn = alloc_xen_pagetable();
+        if ( mfn == INVALID_MFN )
+            goto out;
+
+        l1t = map_xen_pagetable(mfn);
+        if ( !l1t )
+        {
+            free_xen_pagetable(mfn);
+            goto out;
+        }
+
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
         {
-            clear_page(pl1e);
-            l2e_write(pl2e, l2e_from_paddr(__pa(pl1e), __PAGE_HYPERVISOR));
-            pl1e = NULL;
+            clear_page(l1t);
+            l2e_write(pl2e, l2e_from_mfn(mfn, __PAGE_HYPERVISOR));
+            pl1e = l1t + l1_table_offset(v);
+            l1t = NULL;
         }
         if ( locking )
             spin_unlock(&map_pgdir_lock);
-        if ( pl1e )
-            free_xen_pagetable(pl1e);
+
+        if ( l1t )
+        {
+            ASSERT(!pl1e);
+            ASSERT(mfn != INVALID_MFN);
+            unmap_xen_pagetable(l1t);
+            free_xen_pagetable(mfn);
+        }
+    }
+
+    if ( !pl1e )
+    {
+        ASSERT(l2e_get_flags(*pl2e) & _PAGE_PRESENT);
+        pl1e = map_xen_pagetable(l2e_get_mfn(*pl2e)) + l1_table_offset(v);
     }
 
     BUG_ON(l2e_get_flags(*pl2e) & _PAGE_PSE);
-    return l2e_to_l1e(*pl2e) + l1_table_offset(v);
+
+ out:
+    unmap_xen_pagetable(pl2e);
+    return pl1e;
 }
 
 /* Convert to from superpage-mapping flags for map_pages_to_xen(). */
