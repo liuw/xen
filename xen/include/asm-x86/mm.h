@@ -641,4 +641,9 @@ int arch_acquire_resource(struct domain *d, unsigned int type,
                           unsigned int nr_frames, xen_pfn_t mfn_list[],
                           unsigned int *flags);
 
+/* Allocator functions for Xen pagetables. */
+void *alloc_xen_pagetable(void);
+void free_xen_pagetable(void *v);
+l1_pgentry_t *virt_to_xen_l1e(unsigned long v);
+
 #endif /* __ASM_X86_MM_H__ */
