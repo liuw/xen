@@ -103,6 +103,7 @@
 #include <xen/efi.h>
 #include <xen/grant_table.h>
 #include <xen/hypercall.h>
+#include <xen/mm.h>
 #include <asm/paging.h>
 #include <asm/shadow.h>
 #include <asm/page.h>
@@ -4721,21 +4722,49 @@ int mmcfg_intercept_write(
 
 void *alloc_xen_pagetable(void)
 {
-    if ( system_state != SYS_STATE_early_boot )
-    {
-        void *ptr = alloc_xenheap_page();
+    mfn_t mfn;
 
-        BUG_ON(!hardware_domain && !ptr);
-        return ptr;
-    }
+    mfn = alloc_xen_pagetable_new();
+    ASSERT(!mfn_eq(mfn, INVALID_MFN));
 
-    return mfn_to_virt(mfn_x(alloc_boot_pages(1, 1)));
+    return map_xen_pagetable_new(mfn);
 }
 
 void free_xen_pagetable(void *v)
 {
     if ( system_state != SYS_STATE_early_boot )
-        free_xenheap_page(v);
+        free_xen_pagetable_new(virt_to_mfn(v));
+}
+
+mfn_t alloc_xen_pagetable_new(void)
+{
+    if ( system_state != SYS_STATE_early_boot )
+    {
+        void *ptr = alloc_xenheap_page();
+
+        BUG_ON(!hardware_domain && !ptr);
+        return virt_to_mfn(ptr);
+    }
+
+    return alloc_boot_pages(1, 1);
+}
+
+void *map_xen_pagetable_new(mfn_t mfn)
+{
+    return mfn_to_virt(mfn_x(mfn));
+}
+
+/* v can point to an entry within a table or be NULL */
+void unmap_xen_pagetable_new(void *v)
+{
+    /* XXX still using xenheap page, no need to do anything.  */
+}
+
+/* mfn can be INVALID_MFN */
+void free_xen_pagetable_new(mfn_t mfn)
+{
+    if ( system_state != SYS_STATE_early_boot && !mfn_eq(mfn, INVALID_MFN) )
+        free_xenheap_page(mfn_to_virt(mfn_x(mfn)));
 }
 
 static DEFINE_SPINLOCK(map_pgdir_lock);
