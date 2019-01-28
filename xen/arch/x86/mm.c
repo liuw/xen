@@ -4975,7 +4975,7 @@ int map_pages_to_xen(
             if ( !mfn_eq(mfn, INVALID_MFN) )
                 mfn  = mfn_add(mfn, 1UL << (L3_PAGETABLE_SHIFT - PAGE_SHIFT));
             nr_mfns -= 1UL << (L3_PAGETABLE_SHIFT - PAGE_SHIFT);
-            continue;
+            goto end_of_loop;
         }
 
         if ( (l3e_get_flags(ol3e) & _PAGE_PRESENT) &&
@@ -5002,7 +5002,7 @@ int map_pages_to_xen(
                 if ( !mfn_eq(mfn, INVALID_MFN) )
                     mfn = mfn_add(mfn, i);
                 nr_mfns -= i;
-                continue;
+                goto end_of_loop;
             }
 
             l2t = alloc_xen_pagetable();
@@ -5183,7 +5183,7 @@ int map_pages_to_xen(
                 {
                     if ( locking )
                         spin_unlock(&map_pgdir_lock);
-                    continue;
+                    goto end_of_loop;
                 }
 
                 if ( l2e_get_flags(ol2e) & _PAGE_PSE )
@@ -5238,7 +5238,7 @@ int map_pages_to_xen(
             {
                 if ( locking )
                     spin_unlock(&map_pgdir_lock);
-                continue;
+                goto end_of_loop;
             }
 
             l2t = l3e_to_l2e(ol3e);
@@ -5263,6 +5263,7 @@ int map_pages_to_xen(
             else if ( locking )
                 spin_unlock(&map_pgdir_lock);
         }
+    end_of_loop:;
     }
 
 #undef flush_flags
