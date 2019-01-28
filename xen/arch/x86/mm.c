@@ -5301,6 +5301,8 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
 
         if ( l3e_get_flags(*pl3e) & _PAGE_PSE )
         {
+            l2_pgentry_t *l2t;
+
             if ( l2_table_offset(v) == 0 &&
                  l1_table_offset(v) == 0 &&
                  ((e - v) >= (1UL << L3_PAGETABLE_SHIFT)) )
@@ -5316,11 +5318,11 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
             }
 
             /* PAGE1GB: shatter the superpage and fall through. */
-            pl2e = alloc_xen_pagetable();
-            if ( !pl2e )
+            l2t = alloc_xen_pagetable();
+            if ( !l2t )
                 return -ENOMEM;
             for ( i = 0; i < L2_PAGETABLE_ENTRIES; i++ )
-                l2e_write(pl2e + i,
+                l2e_write(l2t + i,
                           l2e_from_pfn(l3e_get_pfn(*pl3e) +
                                        (i << PAGETABLE_ORDER),
                                        l3e_get_flags(*pl3e)));
@@ -5329,14 +5331,14 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
             if ( (l3e_get_flags(*pl3e) & _PAGE_PRESENT) &&
                  (l3e_get_flags(*pl3e) & _PAGE_PSE) )
             {
-                l3e_write_atomic(pl3e, l3e_from_mfn(virt_to_mfn(pl2e),
+                l3e_write_atomic(pl3e, l3e_from_mfn(virt_to_mfn(l2t),
                                                     __PAGE_HYPERVISOR));
-                pl2e = NULL;
+                l2t = NULL;
             }
             if ( locking )
                 spin_unlock(&map_pgdir_lock);
-            if ( pl2e )
-                free_xen_pagetable(pl2e);
+            if ( l2t )
+                free_xen_pagetable(l2t);
         }
 
         /*
