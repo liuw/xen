@@ -5202,6 +5202,7 @@ int map_pages_to_xen(
                 ((1UL << (L3_PAGETABLE_SHIFT - PAGE_SHIFT)) - 1))) )
         {
             unsigned long base_mfn;
+            l2_pgentry_t *l2t;
 
             if ( locking )
                 spin_lock(&map_pgdir_lock);
@@ -5219,13 +5220,13 @@ int map_pages_to_xen(
                 continue;
             }
 
-            pl2e = l3e_to_l2e(ol3e);
-            base_mfn = l2e_get_pfn(*pl2e) & ~(L2_PAGETABLE_ENTRIES *
+            l2t = l3e_to_l2e(ol3e);
+            base_mfn = l2e_get_pfn(l2t[0]) & ~(L2_PAGETABLE_ENTRIES *
                                               L1_PAGETABLE_ENTRIES - 1);
-            for ( i = 0; i < L2_PAGETABLE_ENTRIES; i++, pl2e++ )
-                if ( (l2e_get_pfn(*pl2e) !=
+            for ( i = 0; i < L2_PAGETABLE_ENTRIES; i++ )
+                if ( (l2e_get_pfn(l2t[i]) !=
                       (base_mfn + (i << PAGETABLE_ORDER))) ||
-                     (l2e_get_flags(*pl2e) != l1f_to_lNf(flags)) )
+                     (l2e_get_flags(l2t[i]) != l1f_to_lNf(flags)) )
                     break;
             if ( i == L2_PAGETABLE_ENTRIES )
             {
