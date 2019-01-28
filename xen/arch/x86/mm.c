@@ -5318,7 +5318,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
 
             v += 1UL << L3_PAGETABLE_SHIFT;
             v &= ~((1UL << L3_PAGETABLE_SHIFT) - 1);
-            continue;
+            goto end_of_loop;
         }
 
         if ( l3e_get_flags(*pl3e) & _PAGE_PSE )
@@ -5336,7 +5336,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
 
                 l3e_write_atomic(pl3e, nl3e);
                 v += 1UL << L3_PAGETABLE_SHIFT;
-                continue;
+                goto end_of_loop;
             }
 
             /* PAGE1GB: shatter the superpage and fall through. */
@@ -5380,7 +5380,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
 
             v += 1UL << L2_PAGETABLE_SHIFT;
             v &= ~((1UL << L2_PAGETABLE_SHIFT) - 1);
-            continue;
+            goto end_of_loop;
         }
 
         if ( l2e_get_flags(*pl2e) & _PAGE_PSE )
@@ -5454,7 +5454,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
              * skip the empty&free check.
              */
             if ( (nf & _PAGE_PRESENT) || ((v != e) && (l1_table_offset(v) != 0)) )
-                continue;
+                goto end_of_loop;
             if ( locking )
                 spin_lock(&map_pgdir_lock);
 
@@ -5473,7 +5473,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
             {
                 if ( locking )
                     spin_unlock(&map_pgdir_lock);
-                continue;
+                goto end_of_loop;
             }
 
             l1t = l2e_to_l1e(*pl2e);
@@ -5500,7 +5500,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
          */
         if ( (nf & _PAGE_PRESENT) ||
              ((v != e) && (l2_table_offset(v) + l1_table_offset(v) != 0)) )
-            continue;
+            goto end_of_loop;
         if ( locking )
             spin_lock(&map_pgdir_lock);
 
@@ -5513,7 +5513,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
         {
             if ( locking )
                 spin_unlock(&map_pgdir_lock);
-            continue;
+            goto end_of_loop;
         }
 
         {
@@ -5535,6 +5535,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
             else if ( locking )
                 spin_unlock(&map_pgdir_lock);
         }
+    end_of_loop:;
     }
 
     flush_area(NULL, FLUSH_TLB_GLOBAL);
