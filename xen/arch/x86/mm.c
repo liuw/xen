@@ -5486,21 +5486,25 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
             continue;
         }
 
-        pl2e = l3e_to_l2e(*pl3e);
-        for ( i = 0; i < L2_PAGETABLE_ENTRIES; i++ )
-            if ( l2e_get_intpte(pl2e[i]) != 0 )
-                break;
-        if ( i == L2_PAGETABLE_ENTRIES )
         {
-            /* Empty: zap the L3E and free the L2 page. */
-            l3e_write_atomic(pl3e, l3e_empty());
-            if ( locking )
+            l2_pgentry_t *l2t;
+
+            l2t = l3e_to_l2e(*pl3e);
+            for ( i = 0; i < L2_PAGETABLE_ENTRIES; i++ )
+                if ( l2e_get_intpte(l2t[i]) != 0 )
+                    break;
+            if ( i == L2_PAGETABLE_ENTRIES )
+            {
+                /* Empty: zap the L3E and free the L2 page. */
+                l3e_write_atomic(pl3e, l3e_empty());
+                if ( locking )
+                    spin_unlock(&map_pgdir_lock);
+                flush_area(NULL, FLUSH_TLB_GLOBAL); /* flush before free */
+                free_xen_pagetable(l2t);
+            }
+            else if ( locking )
                 spin_unlock(&map_pgdir_lock);
-            flush_area(NULL, FLUSH_TLB_GLOBAL); /* flush before free */
-            free_xen_pagetable(pl2e);
         }
-        else if ( locking )
-            spin_unlock(&map_pgdir_lock);
     }
 
     flush_area(NULL, FLUSH_TLB_GLOBAL);
