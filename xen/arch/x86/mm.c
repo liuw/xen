@@ -4947,10 +4947,11 @@ int map_pages_to_xen(
                         else
                         {
                             unsigned int j;
+                            l1_pgentry_t *l1t;
 
-                            pl1e = l2e_to_l1e(ol2e);
+                            l1t = l2e_to_l1e(ol2e);
                             for ( j = 0; j < L1_PAGETABLE_ENTRIES; j++ )
-                                flush_flags(l1e_get_flags(pl1e[j]));
+                                flush_flags(l1e_get_flags(l1t[j]));
                         }
                     }
                     flush_area(virt, flush_flags);
