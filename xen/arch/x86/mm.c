@@ -4845,22 +4845,22 @@ l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
     if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l1_pgentry_t *pl1e = alloc_xen_pagetable();
+        l1_pgentry_t *l1t = alloc_xen_pagetable();
 
-        if ( !pl1e )
+        if ( !l1t )
             return NULL;
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
         {
-            clear_page(pl1e);
-            l2e_write(pl2e, l2e_from_paddr(__pa(pl1e), __PAGE_HYPERVISOR));
-            pl1e = NULL;
+            clear_page(l1t);
+            l2e_write(pl2e, l2e_from_paddr(__pa(l1t), __PAGE_HYPERVISOR));
+            l1t = NULL;
         }
         if ( locking )
             spin_unlock(&map_pgdir_lock);
-        if ( pl1e )
-            free_xen_pagetable(pl1e);
+        if ( l1t )
+            free_xen_pagetable(l1t);
     }
 
     BUG_ON(l2e_get_flags(*pl2e) & _PAGE_PSE);
