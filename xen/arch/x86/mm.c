@@ -4825,6 +4825,10 @@ static l3_pgentry_t *virt_to_xen_l3e(unsigned long v)
     return pl3e;
 }
 
+/*
+ * Given a virtual address, return a pointer to xen's L2 entry. Caller
+ * needs to unmap the pointer.
+ */
 static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
 {
     l3_pgentry_t *pl3e;
@@ -4837,27 +4841,44 @@ static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
     if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l2_pgentry_t *l2t = alloc_xen_pagetable();
+        l2_pgentry_t *l2t;
+        mfn_t mfn;
 
-        if ( !l2t )
+        mfn = alloc_xen_pagetable_new();
+        if ( mfn_eq(mfn, INVALID_MFN) )
             goto out;
+
+        l2t = map_xen_pagetable_new(mfn);
 
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
         {
             clear_page(l2t);
-            l3e_write(pl3e, l3e_from_paddr(__pa(l2t), __PAGE_HYPERVISOR));
+            l3e_write(pl3e, l3e_from_mfn(mfn, __PAGE_HYPERVISOR));
+            pl2e = l2t + l2_table_offset(v);
             l2t = NULL;
         }
         if ( locking )
             spin_unlock(&map_pgdir_lock);
+
         if ( l2t )
-            free_xen_pagetable(l2t);
+        {
+            ASSERT(!pl2e);
+            ASSERT(!mfn_eq(mfn, INVALID_MFN));
+            unmap_xen_pagetable_new(l2t);
+            free_xen_pagetable_new(mfn);
+        }
     }
 
     BUG_ON(l3e_get_flags(*pl3e) & _PAGE_PSE);
-    pl2e = l3e_to_l2e(*pl3e) + l2_table_offset(v);
+
+    if ( !pl2e )
+    {
+        ASSERT(l3e_get_flags(*pl3e) & _PAGE_PRESENT);
+        pl2e = (l2_pgentry_t *)map_xen_pagetable_new(l3e_get_mfn(*pl3e))
+            + l2_table_offset(v);
+    }
 
  out:
     unmap_xen_pagetable_new(pl3e);
