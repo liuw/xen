@@ -4944,7 +4944,7 @@ int map_pages_to_xen(
 {
     bool locking = system_state > SYS_STATE_boot;
     l3_pgentry_t *pl3e = NULL, ol3e;
-    l2_pgentry_t *pl2e, ol2e;
+    l2_pgentry_t *pl2e = NULL, ol2e;
     l1_pgentry_t *pl1e, ol1e;
     unsigned int  i;
     int rc = -ENOMEM;
@@ -5320,6 +5320,7 @@ int map_pages_to_xen(
                 spin_unlock(&map_pgdir_lock);
         }
     end_of_loop:
+        unmap_xen_pagetable_new(pl2e); pl2e = NULL;
         unmap_xen_pagetable_new(pl3e); pl3e = NULL;
     }
 
@@ -5328,6 +5329,7 @@ int map_pages_to_xen(
     rc = 0;
 
  out:
+    unmap_xen_pagetable_new(pl2e);
     unmap_xen_pagetable_new(pl3e);
     return rc;
 }
