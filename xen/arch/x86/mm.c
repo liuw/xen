@@ -5338,6 +5338,7 @@ int map_pages_to_xen(
                 spin_unlock(&map_pgdir_lock);
         }
     end_of_loop:
+        unmap_xen_pagetable_new(pl1e); pl1e = NULL;
         unmap_xen_pagetable_new(pl2e); pl2e = NULL;
         unmap_xen_pagetable_new(pl3e); pl3e = NULL;
     }
@@ -5347,6 +5348,7 @@ int map_pages_to_xen(
     rc = 0;
 
  out:
+    unmap_xen_pagetable_new(pl1e);
     unmap_xen_pagetable_new(pl2e);
     unmap_xen_pagetable_new(pl3e);
     return rc;
