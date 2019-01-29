@@ -496,9 +496,10 @@ void __init paging_init(void)
 {
     unsigned long i, mpt_size, va;
     unsigned int n, memflags;
-    l3_pgentry_t *l3_ro_mpt;
+    l3_pgentry_t *l3_ro_mpt = NULL;
     l2_pgentry_t *pl2e = NULL, *l2_ro_mpt;
     struct page_info *l1_pg;
+    mfn_t l3_ro_mpt_mfn;
 
     /*
      * We setup the L3s for 1:1 mapping if host support memory hotplug
@@ -527,11 +528,13 @@ void __init paging_init(void)
     }
 
     /* Create user-accessible L2 directory to map the MPT for guests. */
-    if ( (l3_ro_mpt = alloc_xen_pagetable()) == NULL )
+    l3_ro_mpt_mfn = alloc_xen_pagetable_new();
+    if ( mfn_eq(l3_ro_mpt_mfn, INVALID_MFN) )
         goto nomem;
+    l3_ro_mpt = map_xen_pagetable_new(l3_ro_mpt_mfn);
     clear_page(l3_ro_mpt);
     l4e_write(&idle_pg_table[l4_table_offset(RO_MPT_VIRT_START)],
-              l4e_from_paddr(__pa(l3_ro_mpt), __PAGE_HYPERVISOR_RO | _PAGE_USER));
+              l4e_from_mfn(l3_ro_mpt_mfn, __PAGE_HYPERVISOR_RO | _PAGE_USER));
 
     /*
      * Allocate and map the machine-to-phys table.
@@ -630,6 +633,7 @@ void __init paging_init(void)
     }
 #undef CNT
 #undef MFN
+    unmap_xen_pagetable_new(l3_ro_mpt);
 
     /* Create user-accessible L2 directory to map the MPT for compat guests. */
     BUILD_BUG_ON(l4_table_offset(RDWR_MPT_VIRT_START) !=
