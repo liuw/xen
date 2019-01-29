@@ -4888,10 +4888,11 @@ static l2_pgentry_t *virt_to_xen_l2e(unsigned long v)
 l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
 {
     l2_pgentry_t *pl2e;
+    l1_pgentry_t *pl1e = NULL;
 
     pl2e = virt_to_xen_l2e(v);
     if ( !pl2e )
-        return NULL;
+        goto out;
 
     if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
     {
@@ -4899,7 +4900,7 @@ l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
         l1_pgentry_t *l1t = alloc_xen_pagetable();
 
         if ( !l1t )
-            return NULL;
+            goto out;
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
@@ -4915,7 +4916,11 @@ l1_pgentry_t *virt_to_xen_l1e(unsigned long v)
     }
 
     BUG_ON(l2e_get_flags(*pl2e) & _PAGE_PSE);
-    return l2e_to_l1e(*pl2e) + l1_table_offset(v);
+    pl1e = l2e_to_l1e(*pl2e) + l1_table_offset(v);
+
+ out:
+    unmap_xen_pagetable_new(pl2e);
+    return pl1e;
 }
 
 /* Convert to from superpage-mapping flags for map_pages_to_xen(). */
