@@ -4777,25 +4777,25 @@ static l3_pgentry_t *virt_to_xen_l3e(unsigned long v)
     if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
     {
         bool locking = system_state > SYS_STATE_boot;
-        l3_pgentry_t *pl3e = alloc_xen_pagetable();
+        l3_pgentry_t *l3t = alloc_xen_pagetable();
 
-        if ( !pl3e )
+        if ( !l3t )
             return NULL;
         if ( locking )
             spin_lock(&map_pgdir_lock);
         if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
         {
-            l4_pgentry_t l4e = l4e_from_paddr(__pa(pl3e), __PAGE_HYPERVISOR);
+            l4_pgentry_t l4e = l4e_from_paddr(__pa(l3t), __PAGE_HYPERVISOR);
 
-            clear_page(pl3e);
+            clear_page(l3t);
             l4e_write(pl4e, l4e);
             efi_update_l4_pgtable(l4_table_offset(v), l4e);
-            pl3e = NULL;
+            l3t = NULL;
         }
         if ( locking )
             spin_unlock(&map_pgdir_lock);
-        if ( pl3e )
-            free_xen_pagetable(pl3e);
+        if ( l3t )
+            free_xen_pagetable(l3t);
     }
 
     return l4e_to_l3e(*pl4e) + l3_table_offset(v);
