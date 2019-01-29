@@ -511,13 +511,18 @@ void __init paging_init(void)
         if ( !(l4e_get_flags(idle_pg_table[l4_table_offset(va)]) &
               _PAGE_PRESENT) )
         {
-            l3_pgentry_t *pl3t = alloc_xen_pagetable();
+            l3_pgentry_t *pl3t;
+            mfn_t mfn;
 
-            if ( !pl3t )
+            mfn = alloc_xen_pagetable_new();
+            if ( mfn_eq(mfn, INVALID_MFN) )
                 goto nomem;
+
+            pl3t = map_xen_pagetable_new(mfn);
             clear_page(pl3t);
             l4e_write(&idle_pg_table[l4_table_offset(va)],
-                      l4e_from_paddr(__pa(pl3t), __PAGE_HYPERVISOR_RW));
+                      l4e_from_mfn(mfn, __PAGE_HYPERVISOR_RW));
+            unmap_xen_pagetable_new(pl3t);
         }
     }
 
