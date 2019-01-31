@@ -650,12 +650,15 @@ void __init paging_init(void)
                  l4_table_offset(HIRO_COMPAT_MPT_VIRT_START));
     l3_ro_mpt = l4e_to_l3e(idle_pg_table[l4_table_offset(
         HIRO_COMPAT_MPT_VIRT_START)]);
-    if ( (l2_ro_mpt = alloc_xen_pagetable()) == NULL )
+
+    l2_ro_mpt_mfn = alloc_xen_pagetable_new();
+    if ( mfn_eq(l2_ro_mpt_mfn, INVALID_MFN) )
         goto nomem;
+    l2_ro_mpt = map_xen_pagetable_new(l2_ro_mpt_mfn);
     compat_idle_pg_table_l2 = l2_ro_mpt;
     clear_page(l2_ro_mpt);
     l3e_write(&l3_ro_mpt[l3_table_offset(HIRO_COMPAT_MPT_VIRT_START)],
-              l3e_from_paddr(__pa(l2_ro_mpt), __PAGE_HYPERVISOR_RO));
+              l3e_from_mfn(l2_ro_mpt_mfn, __PAGE_HYPERVISOR_RO));
     pl2e = l2_ro_mpt;
     pl2e += l2_table_offset(HIRO_COMPAT_MPT_VIRT_START);
     /* Allocate and map the compatibility mode machine-to-phys table. */
@@ -696,6 +699,8 @@ void __init paging_init(void)
     }
 #undef CNT
 #undef MFN
+
+    unmap_xen_pagetable_new(l2_ro_mpt);
 
     machine_to_phys_mapping_valid = 1;
 
