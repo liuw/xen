@@ -497,9 +497,9 @@ void __init paging_init(void)
     unsigned long i, mpt_size, va;
     unsigned int n, memflags;
     l3_pgentry_t *l3_ro_mpt = NULL;
-    l2_pgentry_t *pl2e = NULL, *l2_ro_mpt;
+    l2_pgentry_t *pl2e = NULL, *l2_ro_mpt = NULL;
     struct page_info *l1_pg;
-    mfn_t l3_ro_mpt_mfn;
+    mfn_t l3_ro_mpt_mfn, l2_ro_mpt_mfn;
 
     /*
      * We setup the L3s for 1:1 mapping if host support memory hotplug
@@ -616,12 +616,21 @@ void __init paging_init(void)
         }
         if ( !((unsigned long)pl2e & ~PAGE_MASK) )
         {
-            if ( (l2_ro_mpt = alloc_xen_pagetable()) == NULL )
+            /*
+             * Unmap l2_ro_mpt, which could've been mapped in previous
+             * iteration.
+             */
+            unmap_xen_pagetable_new(l2_ro_mpt);
+
+            l2_ro_mpt_mfn = alloc_xen_pagetable_new();
+            if ( mfn_eq(l2_ro_mpt_mfn, INVALID_MFN) )
                 goto nomem;
+
+            l2_ro_mpt = map_xen_pagetable_new(l2_ro_mpt_mfn);
             clear_page(l2_ro_mpt);
             l3e_write(&l3_ro_mpt[l3_table_offset(va)],
-                      l3e_from_paddr(__pa(l2_ro_mpt),
-                                     __PAGE_HYPERVISOR_RO | _PAGE_USER));
+                      l3e_from_mfn(l2_ro_mpt_mfn,
+                                   __PAGE_HYPERVISOR_RO | _PAGE_USER));
             pl2e = l2_ro_mpt;
             ASSERT(!l2_table_offset(va));
         }
@@ -633,6 +642,7 @@ void __init paging_init(void)
     }
 #undef CNT
 #undef MFN
+    unmap_xen_pagetable_new(l2_ro_mpt);
     unmap_xen_pagetable_new(l3_ro_mpt);
 
     /* Create user-accessible L2 directory to map the MPT for compat guests. */
