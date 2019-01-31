@@ -397,9 +397,10 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
 {
     unsigned long i, va, smap, emap;
     unsigned int n;
-    l2_pgentry_t *pl2e = NULL, *l2_ro_mpt;
+    l2_pgentry_t *pl2e = NULL, *l2_ro_mpt = NULL;
     l3_pgentry_t *l3_ro_mpt = NULL;
     int ret = 0;
+    mfn_t l2_ro_mpt_mfn;
 
     ASSERT(l4e_get_flags(idle_pg_table[l4_table_offset(RO_MPT_VIRT_START)])
             & _PAGE_PRESENT);
@@ -462,17 +463,19 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
                   l2_table_offset(va);
             else
             {
-                l2_ro_mpt = alloc_xen_pagetable();
-                if ( !l2_ro_mpt )
+                UNMAP_XEN_PAGETABLE_NEW(l2_ro_mpt);
+                l2_ro_mpt_mfn = alloc_xen_pagetable_new();
+                if ( mfn_eq(l2_ro_mpt_mfn, INVALID_MFN) )
                 {
                     ret = -ENOMEM;
                     goto error;
                 }
 
+                l2_ro_mpt = map_xen_pagetable_new(l2_ro_mpt_mfn);
                 clear_page(l2_ro_mpt);
                 l3e_write(&l3_ro_mpt[l3_table_offset(va)],
-                          l3e_from_paddr(__pa(l2_ro_mpt),
-                                         __PAGE_HYPERVISOR_RO | _PAGE_USER));
+                          l3e_from_mfn(l2_ro_mpt_mfn,
+                                       __PAGE_HYPERVISOR_RO | _PAGE_USER));
                 pl2e = l2_ro_mpt;
                 pl2e += l2_table_offset(va);
             }
@@ -488,6 +491,7 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
 
     ret = setup_compat_m2p_table(info);
 error:
+    UNMAP_XEN_PAGETABLE_NEW(l2_ro_mpt);
     return ret;
 }
 
