@@ -648,8 +648,10 @@ void __init paging_init(void)
     /* Create user-accessible L2 directory to map the MPT for compat guests. */
     BUILD_BUG_ON(l4_table_offset(RDWR_MPT_VIRT_START) !=
                  l4_table_offset(HIRO_COMPAT_MPT_VIRT_START));
-    l3_ro_mpt = l4e_to_l3e(idle_pg_table[l4_table_offset(
-        HIRO_COMPAT_MPT_VIRT_START)]);
+
+    l3_ro_mpt_mfn = l4e_get_mfn(idle_pg_table[l4_table_offset(
+                                        HIRO_COMPAT_MPT_VIRT_START)]);
+    l3_ro_mpt = map_xen_pagetable_new(l3_ro_mpt_mfn);
 
     l2_ro_mpt_mfn = alloc_xen_pagetable_new();
     if ( mfn_eq(l2_ro_mpt_mfn, INVALID_MFN) )
@@ -701,6 +703,7 @@ void __init paging_init(void)
 #undef MFN
 
     UNMAP_XEN_PAGETABLE_NEW(l2_ro_mpt);
+    UNMAP_XEN_PAGETABLE_NEW(l3_ro_mpt);
 
     machine_to_phys_mapping_valid = 1;
 
