@@ -397,7 +397,7 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
 {
     unsigned long i, va, smap, emap;
     unsigned int n;
-    l2_pgentry_t *l2_ro_mpt = NULL;
+    l2_pgentry_t *pl2e = NULL, *l2_ro_mpt;
     l3_pgentry_t *l3_ro_mpt = NULL;
     int ret = 0;
 
@@ -458,7 +458,7 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
                   _PAGE_PSE));
             if ( l3e_get_flags(l3_ro_mpt[l3_table_offset(va)]) &
               _PAGE_PRESENT )
-                l2_ro_mpt = l3e_to_l2e(l3_ro_mpt[l3_table_offset(va)]) +
+                pl2e = l3e_to_l2e(l3_ro_mpt[l3_table_offset(va)]) +
                   l2_table_offset(va);
             else
             {
@@ -473,11 +473,12 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
                 l3e_write(&l3_ro_mpt[l3_table_offset(va)],
                           l3e_from_paddr(__pa(l2_ro_mpt),
                                          __PAGE_HYPERVISOR_RO | _PAGE_USER));
-                l2_ro_mpt += l2_table_offset(va);
+                pl2e = l2_ro_mpt;
+                pl2e += l2_table_offset(va);
             }
 
             /* NB. Cannot be GLOBAL: guest user mode should not see it. */
-            l2e_write(l2_ro_mpt, l2e_from_mfn(mfn,
+            l2e_write(pl2e, l2e_from_mfn(mfn,
                    /*_PAGE_GLOBAL|*/_PAGE_PSE|_PAGE_USER|_PAGE_PRESENT));
         }
         i += ( 1UL << (L2_PAGETABLE_SHIFT - 3));
