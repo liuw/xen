@@ -459,8 +459,13 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
                   _PAGE_PSE));
             if ( l3e_get_flags(l3_ro_mpt[l3_table_offset(va)]) &
               _PAGE_PRESENT )
-                pl2e = l3e_to_l2e(l3_ro_mpt[l3_table_offset(va)]) +
-                  l2_table_offset(va);
+            {
+                unmap_xen_pagetable_new(l2_ro_mpt);
+                l2_ro_mpt_mfn = l3e_get_mfn(l3_ro_mpt[l3_table_offset(va)]);
+                l2_ro_mpt = map_xen_pagetable_new(l2_ro_mpt_mfn);
+                ASSERT(l2_ro_mpt);
+                pl2e = l2_ro_mpt + l2_table_offset(va);
+            }
             else
             {
                 unmap_xen_pagetable_new(l2_ro_mpt);
