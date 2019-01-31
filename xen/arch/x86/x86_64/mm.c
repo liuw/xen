@@ -400,11 +400,13 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
     l2_pgentry_t *pl2e = NULL, *l2_ro_mpt = NULL;
     l3_pgentry_t *l3_ro_mpt = NULL;
     int ret = 0;
-    mfn_t l2_ro_mpt_mfn;
+    mfn_t l2_ro_mpt_mfn, l3_ro_mpt_mfn;
 
     ASSERT(l4e_get_flags(idle_pg_table[l4_table_offset(RO_MPT_VIRT_START)])
             & _PAGE_PRESENT);
-    l3_ro_mpt = l4e_to_l3e(idle_pg_table[l4_table_offset(RO_MPT_VIRT_START)]);
+    l3_ro_mpt_mfn = l4e_get_mfn(idle_pg_table[l4_table_offset(
+                                        RO_MPT_VIRT_START)]);
+    l3_ro_mpt = map_xen_pagetable_new(l3_ro_mpt_mfn);
 
     smap = (info->spfn & (~((1UL << (L2_PAGETABLE_SHIFT - 3)) -1)));
     emap = ((info->epfn + ((1UL << (L2_PAGETABLE_SHIFT - 3)) - 1 )) &
@@ -459,8 +461,13 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
                   _PAGE_PSE));
             if ( l3e_get_flags(l3_ro_mpt[l3_table_offset(va)]) &
               _PAGE_PRESENT )
-                pl2e = l3e_to_l2e(l3_ro_mpt[l3_table_offset(va)]) +
-                  l2_table_offset(va);
+            {
+                UNMAP_XEN_PAGETABLE_NEW(l2_ro_mpt);
+                l2_ro_mpt_mfn = l3e_get_mfn(l3_ro_mpt[l3_table_offset(va)]);
+                l2_ro_mpt = map_xen_pagetable_new(l2_ro_mpt_mfn);
+                ASSERT(l2_ro_mpt);
+                pl2e = l2_ro_mpt + l2_table_offset(va);
+            }
             else
             {
                 UNMAP_XEN_PAGETABLE_NEW(l2_ro_mpt);
@@ -492,6 +499,7 @@ static int setup_m2p_table(struct mem_hotadd_info *info)
     ret = setup_compat_m2p_table(info);
 error:
     UNMAP_XEN_PAGETABLE_NEW(l2_ro_mpt);
+    UNMAP_XEN_PAGETABLE_NEW(l3_ro_mpt);
     return ret;
 }
 
