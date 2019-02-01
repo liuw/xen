@@ -5404,7 +5404,6 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
     bool locking = system_state > SYS_STATE_boot;
     l3_pgentry_t *pl3e = NULL;
     l2_pgentry_t *pl2e = NULL;
-    l1_pgentry_t *pl1e;
     unsigned int  i;
     unsigned long v = s;
     int rc = -ENOMEM;
@@ -5552,14 +5551,15 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
         }
         else
         {
-            l1_pgentry_t nl1e, *l1t;
+            l1_pgentry_t nl1e, *l1t, *pl1e;
 
             /*
              * Ordinary 4kB mapping: The L2 entry has been verified to be
              * present, and we've dealt with 2M pages as well, so the L1 table
              * cannot require allocation.
              */
-            pl1e = l2e_to_l1e(*pl2e) + l1_table_offset(v);
+            pl1e = map_xen_pagetable_new(l2e_get_mfn(*pl2e));
+            pl1e += l1_table_offset(v);
 
             /* Confirm the caller isn't trying to create new mappings. */
             if ( !(l1e_get_flags(*pl1e) & _PAGE_PRESENT) )
@@ -5570,6 +5570,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
                                (l1e_get_flags(*pl1e) & ~FLAGS_MASK) | nf);
 
             l1e_write_atomic(pl1e, nl1e);
+            unmap_xen_pagetable_new(pl1e);
             v += PAGE_SIZE;
 
             /*
