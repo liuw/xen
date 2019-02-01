@@ -5151,12 +5151,14 @@ int map_pages_to_xen(
                 else
                 {
                     l1_pgentry_t *l1t;
+                    mfn_t l1t_mfn = l2e_get_mfn(ol2e);
 
-                    l1t = l2e_to_l1e(ol2e);
+                    l1t = map_xen_pagetable_new(l1t_mfn);
                     for ( i = 0; i < L1_PAGETABLE_ENTRIES; i++ )
                         flush_flags(l1e_get_flags(l1t[i]));
                     flush_area(virt, flush_flags);
-                    free_xen_pagetable(l1t);
+                    unmap_xen_pagetable_new(l1t);
+                    free_xen_pagetable_new(l1t_mfn);
                 }
             }
 
