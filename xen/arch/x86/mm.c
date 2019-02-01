@@ -5403,7 +5403,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
 {
     bool locking = system_state > SYS_STATE_boot;
     l3_pgentry_t *pl3e = NULL;
-    l2_pgentry_t *pl2e;
+    l2_pgentry_t *pl2e = NULL;
     l1_pgentry_t *pl1e;
     unsigned int  i;
     unsigned long v = s;
@@ -5486,7 +5486,8 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
          * The L3 entry has been verified to be present, and we've dealt with
          * 1G pages as well, so the L2 table cannot require allocation.
          */
-        pl2e = l3e_to_l2e(*pl3e) + l2_table_offset(v);
+        pl2e = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
+        pl2e += l2_table_offset(v);
 
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
         {
@@ -5658,6 +5659,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
                 spin_unlock(&map_pgdir_lock);
         }
     end_of_loop:
+        unmap_xen_pagetable_new(pl2e); pl2e = NULL;
         unmap_xen_pagetable_new(pl3e); pl3e = NULL;
     }
 
@@ -5667,6 +5669,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
     rc = 0;
 
  out:
+    unmap_xen_pagetable_new(pl2e);
     unmap_xen_pagetable_new(pl3e);
     return rc;
 }
