@@ -672,7 +672,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
 {
     unsigned long linear = (unsigned long)ptr, pfn;
     unsigned int flags;
-    l3_pgentry_t *pl3e;
+    l3_pgentry_t *pl3e = NULL;
     l2_pgentry_t *pl2e;
     l1_pgentry_t *pl1e;
     int rc;
@@ -695,8 +695,9 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
         goto out;
     }
 
-    pl3e = l4e_to_l3e(idle_pg_table[root_table_offset(linear)]) +
-        l3_table_offset(linear);
+    pl3e = map_xen_pagetable_new(
+        l4e_get_mfn(idle_pg_table[root_table_offset(linear)]));
+    pl3e += l3_table_offset(linear);
 
     flags = l3e_get_flags(*pl3e);
     ASSERT(flags & _PAGE_PRESENT);
@@ -730,20 +731,26 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
         }
     }
 
+    UNMAP_XEN_PAGETABLE_NEW(pl3e);
+
     if ( !(root_get_flags(rpt[root_table_offset(linear)]) & _PAGE_PRESENT) )
     {
-        pl3e = alloc_xen_pagetable();
-        if ( !pl3e )
+        mfn_t l3t_mfn = alloc_xen_pagetable_new();
+
+        if ( mfn_eq(l3t_mfn, INVALID_MFN) )
         {
             rc = -ENOMEM;
             goto out;
         }
+
+        pl3e = map_xen_pagetable_new(l3t_mfn);
         clear_page(pl3e);
         l4e_write(&rpt[root_table_offset(linear)],
-                  l4e_from_paddr(__pa(pl3e), __PAGE_HYPERVISOR));
+                  l4e_from_mfn(l3t_mfn, __PAGE_HYPERVISOR));
     }
     else
-        pl3e = l4e_to_l3e(rpt[root_table_offset(linear)]);
+        pl3e = map_xen_pagetable_new(
+            l4e_get_mfn(rpt[root_table_offset(linear)]));
 
     pl3e += l3_table_offset(linear);
 
@@ -796,6 +803,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
 
     rc = 0;
  out:
+    UNMAP_XEN_PAGETABLE_NEW(pl3e);
     return rc;
 }
 
