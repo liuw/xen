@@ -1384,3 +1384,13 @@ void __init smp_intr_init(void)
     set_direct_apic_vector(INVALIDATE_TLB_VECTOR, invalidate_interrupt);
     set_direct_apic_vector(CALL_FUNCTION_VECTOR, call_function_interrupt);
 }
+
+/*
+ * Local variables:
+ * mode: C
+ * c-file-style: "BSD"
+ * c-basic-offset: 4
+ * tab-width: 4
+ * indent-tabs-mode: nil
+ * End:
+ */
