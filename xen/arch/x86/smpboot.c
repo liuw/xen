@@ -675,6 +675,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     l3_pgentry_t *pl3e;
     l2_pgentry_t *pl2e;
     l1_pgentry_t *pl1e;
+    int rc;
 
     /*
      * Sanity check 'linear'.  We only allow cloning from the Xen virtual
@@ -682,11 +683,17 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
      */
     if ( root_table_offset(linear) > ROOT_PAGETABLE_LAST_XEN_SLOT ||
          root_table_offset(linear) < ROOT_PAGETABLE_FIRST_XEN_SLOT )
-        return -EINVAL;
+    {
+        rc = -EINVAL;
+        goto out;
+    }
 
     if ( linear < XEN_VIRT_START ||
          (linear >= XEN_VIRT_END && linear < DIRECTMAP_VIRT_START) )
-        return -EINVAL;
+    {
+        rc = -EINVAL;
+        goto out;
+    }
 
     pl3e = l4e_to_l3e(idle_pg_table[root_table_offset(linear)]) +
         l3_table_offset(linear);
@@ -715,7 +722,10 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
             pl1e = l2e_to_l1e(*pl2e) + l1_table_offset(linear);
             flags = l1e_get_flags(*pl1e);
             if ( !(flags & _PAGE_PRESENT) )
-                return 0;
+            {
+                rc = 0;
+                goto out;
+            }
             pfn = l1e_get_pfn(*pl1e);
         }
     }
@@ -724,7 +734,10 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     {
         pl3e = alloc_xen_pagetable();
         if ( !pl3e )
-            return -ENOMEM;
+        {
+            rc = -ENOMEM;
+            goto out;
+        }
         clear_page(pl3e);
         l4e_write(&rpt[root_table_offset(linear)],
                   l4e_from_paddr(__pa(pl3e), __PAGE_HYPERVISOR));
@@ -738,7 +751,10 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     {
         pl2e = alloc_xen_pagetable();
         if ( !pl2e )
-            return -ENOMEM;
+        {
+            rc = -ENOMEM;
+            goto out;
+        }
         clear_page(pl2e);
         l3e_write(pl3e, l3e_from_paddr(__pa(pl2e), __PAGE_HYPERVISOR));
     }
@@ -754,7 +770,10 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     {
         pl1e = alloc_xen_pagetable();
         if ( !pl1e )
-            return -ENOMEM;
+        {
+            rc = -ENOMEM;
+            goto out;
+        }
         clear_page(pl1e);
         l2e_write(pl2e, l2e_from_paddr(__pa(pl1e), __PAGE_HYPERVISOR));
     }
@@ -775,7 +794,9 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     else
         l1e_write(pl1e, l1e_from_pfn(pfn, flags));
 
-    return 0;
+    rc = 0;
+ out:
+    return rc;
 }
 
 DEFINE_PER_CPU(root_pgentry_t *, root_pgt);
