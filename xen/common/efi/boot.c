@@ -1423,7 +1423,8 @@ static int __init parse_efi_param(const char *s)
 custom_param("efi", parse_efi_param);
 
 #ifndef USE_SET_VIRTUAL_ADDRESS_MAP
-static __init void copy_mapping(unsigned long mfn, unsigned long end,
+static __init void copy_mapping(l4_pgentry_t *l4,
+                                unsigned long mfn, unsigned long end,
                                 bool (*is_valid)(unsigned long smfn,
                                                  unsigned long emfn))
 {
@@ -1431,7 +1432,7 @@ static __init void copy_mapping(unsigned long mfn, unsigned long end,
 
     for ( ; mfn < end; mfn = next )
     {
-        l4_pgentry_t l4e = efi_l4_pgtable[l4_table_offset(mfn << PAGE_SHIFT)];
+        l4_pgentry_t l4e = l4[l4_table_offset(mfn << PAGE_SHIFT)];
         l3_pgentry_t *l3src, *l3dst;
         unsigned long va = (unsigned long)mfn_to_virt(mfn);
 
@@ -1446,7 +1447,7 @@ static __init void copy_mapping(unsigned long mfn, unsigned long end,
             BUG_ON(mfn_eq(l3t_mfn, INVALID_MFN));
             l3dst = map_xen_pagetable_new(l3t_mfn);
             clear_page(l3dst);
-            efi_l4_pgtable[l4_table_offset(mfn << PAGE_SHIFT)] =
+            l4[l4_table_offset(mfn << PAGE_SHIFT)] =
                 l4e_from_mfn(l3t_mfn, __PAGE_HYPERVISOR);
         }
         else
@@ -1606,7 +1607,7 @@ void __init efi_init_memory(void)
     BUG_ON(!efi_l4_pgtable);
     clear_page(efi_l4_pgtable);
 
-    copy_mapping(0, max_page, ram_range_valid);
+    copy_mapping(efi_l4_pgtable, 0, max_page, ram_range_valid);
 
     /* Insert non-RAM runtime mappings inside the direct map. */
     for ( i = 0; i < efi_memmap_size; i += efi_mdesc_size )
@@ -1619,7 +1620,7 @@ void __init efi_init_memory(void)
                 desc->Type == EfiBootServicesData))) &&
              desc->VirtualStart != INVALID_VIRTUAL_ADDRESS &&
              desc->VirtualStart != desc->PhysicalStart )
-            copy_mapping(PFN_DOWN(desc->PhysicalStart),
+             copy_mapping(efi_l4_pgtable, PFN_DOWN(desc->PhysicalStart),
                          PFN_UP(desc->PhysicalStart +
                                 (desc->NumberOfPages << EFI_PAGE_SHIFT)),
                          rt_range_valid);
