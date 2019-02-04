@@ -1488,6 +1488,7 @@ void __init efi_init_memory(void)
         unsigned int prot;
     } *extra, *extra_head = NULL;
 #endif
+    l4_pgentry_t *efi_l4_pgtable;
 
     free_ebmalloc_unused_mem();
 
@@ -1603,8 +1604,9 @@ void __init efi_init_memory(void)
                                  mdesc_ver, efi_memmap);
 #else
     /* Set up 1:1 page tables to do runtime calls in "physical" mode. */
-    efi_l4_pgtable = alloc_xen_pagetable();
-    BUG_ON(!efi_l4_pgtable);
+    efi_l4_mfn = alloc_xen_pagetable_new();
+    BUG_ON(mfn_eq(efi_l4_mfn, INVALID_MFN));
+    efi_l4_pgtable = map_xen_pagetable_new(efi_l4_mfn);
     clear_page(efi_l4_pgtable);
 
     copy_mapping(efi_l4_pgtable, 0, max_page, ram_range_valid);
@@ -1703,6 +1705,8 @@ void __init efi_init_memory(void)
           i < l4_table_offset(DIRECTMAP_VIRT_END); ++i )
         efi_l4_pgtable[i] = idle_pg_table[i];
 #endif
+
+    unmap_xen_pagetable_new(efi_l4_pgtable);
 }
 #endif
 
