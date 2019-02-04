@@ -1440,16 +1440,22 @@ static __init void copy_mapping(unsigned long mfn, unsigned long end,
             continue;
         if ( !(l4e_get_flags(l4e) & _PAGE_PRESENT) )
         {
-            l3dst = alloc_xen_pagetable();
-            BUG_ON(!l3dst);
+            mfn_t l3t_mfn;
+
+            l3t_mfn = alloc_xen_pagetable_new();
+            BUG_ON(mfn_eq(l3t_mfn, INVALID_MFN));
+            l3dst = map_xen_pagetable_new(l3t_mfn);
             clear_page(l3dst);
             efi_l4_pgtable[l4_table_offset(mfn << PAGE_SHIFT)] =
-                l4e_from_paddr(virt_to_maddr(l3dst), __PAGE_HYPERVISOR);
+                l4e_from_mfn(l3t_mfn, __PAGE_HYPERVISOR);
         }
         else
-            l3dst = l4e_to_l3e(l4e);
-        l3src = l4e_to_l3e(idle_pg_table[l4_table_offset(va)]);
+            l3dst = map_xen_pagetable_new(l4e_get_mfn(l4e));
+        l3src = map_xen_pagetable_new(
+            l4e_get_mfn(idle_pg_table[l4_table_offset(va)]));
         l3dst[l3_table_offset(mfn << PAGE_SHIFT)] = l3src[l3_table_offset(va)];
+        UNMAP_XEN_PAGETABLE_NEW(l3src);
+        UNMAP_XEN_PAGETABLE_NEW(l3dst);
     }
 }
 
