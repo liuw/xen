@@ -370,8 +370,9 @@ void __init arch_init_memory(void)
 
                 if ( !mfn_eq(l3tab_mfn, INVALID_MFN) )
                 {
-                    const l3_pgentry_t *l3idle =
-                        l4e_to_l3e(idle_pg_table[l4_table_offset(split_va)]);
+                    l3_pgentry_t *l3idle =
+                        map_xen_pagetable_new(
+                            l4e_get_mfn(idle_pg_table[l4_table_offset(split_va)]));
                     l3_pgentry_t *l3tab = map_xen_pagetable_new(l3tab_mfn);
 
                     for ( i = 0; i < l3_table_offset(split_va); ++i )
@@ -379,6 +380,7 @@ void __init arch_init_memory(void)
                     for ( ; i < L3_PAGETABLE_ENTRIES; ++i )
                         l3tab[i] = l3e_empty();
                     split_l4e = l4e_from_mfn(l3tab_mfn, __PAGE_HYPERVISOR_RW);
+                    unmap_xen_pagetable_new(l3idle);
                     unmap_xen_pagetable_new(l3tab);
                 }
                 else
