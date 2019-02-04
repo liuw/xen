@@ -1637,39 +1637,50 @@ void __init efi_init_memory(void)
 
         if ( !(l4e_get_flags(l4e) & _PAGE_PRESENT) )
         {
-            pl3e = alloc_xen_pagetable();
-            BUG_ON(!pl3e);
+            mfn_t l3t_mfn;
+
+            l3t_mfn = alloc_xen_pagetable_new();
+            BUG_ON(mfn_eq(l3t_mfn, INVALID_MFN));
+            pl3e = map_xen_pagetable_new(l3t_mfn);
             clear_page(pl3e);
             efi_l4_pgtable[l4_table_offset(addr)] =
-                l4e_from_paddr(virt_to_maddr(pl3e), __PAGE_HYPERVISOR);
+                l4e_from_mfn(l3t_mfn, __PAGE_HYPERVISOR);
         }
         else
-            pl3e = l4e_to_l3e(l4e);
+            pl3e = map_xen_pagetable_new(l4e_get_mfn(l4e));
         pl3e += l3_table_offset(addr);
+
         if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
         {
-            pl2e = alloc_xen_pagetable();
-            BUG_ON(!pl2e);
+            mfn_t l2t_mfn;
+
+            l2t_mfn = alloc_xen_pagetable_new();
+            BUG_ON(mfn_eq(l2t_mfn, INVALID_MFN));
+            pl2e = map_xen_pagetable_new(l2t_mfn);
             clear_page(pl2e);
-            *pl3e = l3e_from_paddr(virt_to_maddr(pl2e), __PAGE_HYPERVISOR);
+            *pl3e = l3e_from_mfn(l2t_mfn, __PAGE_HYPERVISOR);
         }
         else
         {
             BUG_ON(l3e_get_flags(*pl3e) & _PAGE_PSE);
-            pl2e = l3e_to_l2e(*pl3e);
+            pl2e = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
         }
         pl2e += l2_table_offset(addr);
+
         if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
         {
-            l1t = alloc_xen_pagetable();
-            BUG_ON(!l1t);
+            mfn_t l1t_mfn;
+
+            l1t_mfn = alloc_xen_pagetable_new();
+            BUG_ON(mfn_eq(l1t_mfn, INVALID_MFN));
+            l1t = map_xen_pagetable_new(l1t_mfn);
             clear_page(l1t);
-            *pl2e = l2e_from_paddr(virt_to_maddr(l1t), __PAGE_HYPERVISOR);
+            *pl2e = l2e_from_mfn(l1t_mfn, __PAGE_HYPERVISOR);
         }
         else
         {
             BUG_ON(l2e_get_flags(*pl2e) & _PAGE_PSE);
-            l1t = l2e_to_l1e(*pl2e);
+            l1t = map_xen_pagetable_new(l2e_get_mfn(*pl2e));
         }
         for ( i = l1_table_offset(addr);
               i < L1_PAGETABLE_ENTRIES && extra->smfn < extra->emfn;
@@ -1681,6 +1692,10 @@ void __init efi_init_memory(void)
             extra_head = extra->next;
             xfree(extra);
         }
+
+        unmap_xen_pagetable_new(l1t);
+        unmap_xen_pagetable_new(pl2e);
+        unmap_xen_pagetable_new(pl3e);
     }
 
     /* Insert Xen mappings. */
