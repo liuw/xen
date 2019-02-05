@@ -382,11 +382,13 @@ static int setup_compat_m2p_table(struct mem_hotadd_info *info)
 
     va = HIRO_COMPAT_MPT_VIRT_START +
          smap * sizeof(*compat_machine_to_phys_mapping);
-    l3_ro_mpt = l4e_to_l3e(idle_pg_table[l4_table_offset(va)]);
+    l3_ro_mpt = map_xen_pagetable_new(
+        l4e_get_mfn(idle_pg_table[l4_table_offset(va)]));
 
     ASSERT(l3e_get_flags(l3_ro_mpt[l3_table_offset(va)]) & _PAGE_PRESENT);
 
-    l2_ro_mpt = l3e_to_l2e(l3_ro_mpt[l3_table_offset(va)]);
+    l2_ro_mpt = map_xen_pagetable_new(
+        l3e_get_mfn(l3_ro_mpt[l3_table_offset(va)]));
 
 #define MFN(x) (((x) << L2_PAGETABLE_SHIFT) / sizeof(unsigned int))
 #define CNT ((sizeof(*frame_table) & -sizeof(*frame_table)) / \
@@ -424,6 +426,9 @@ static int setup_compat_m2p_table(struct mem_hotadd_info *info)
     }
 #undef CNT
 #undef MFN
+
+    unmap_xen_pagetable_new(l2_ro_mpt);
+    unmap_xen_pagetable_new(l3_ro_mpt);
     return err;
 }
 
