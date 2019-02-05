@@ -819,7 +819,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     return rc;
 }
 
-DEFINE_PER_CPU(root_pgentry_t *, root_pgt);
+DEFINE_PER_CPU(mfn_t, root_pgt_mfn);
 
 static root_pgentry_t common_pgt;
 
@@ -827,19 +827,27 @@ extern const char _stextentry[], _etextentry[];
 
 static int setup_cpu_root_pgt(unsigned int cpu)
 {
-    root_pgentry_t *rpt;
+    root_pgentry_t *rpt = NULL;
+    mfn_t rpt_mfn;
     unsigned int off;
     int rc;
 
     if ( !opt_xpti_hwdom && !opt_xpti_domu )
-        return 0;
+    {
+        rc = 0;
+        goto out;
+    }
 
-    rpt = alloc_xen_pagetable();
-    if ( !rpt )
-        return -ENOMEM;
+    rpt_mfn = alloc_xen_pagetable_new();
+    if ( mfn_eq(rpt_mfn, INVALID_MFN) )
+    {
+        rc = -ENOMEM;
+        goto out;
+    }
 
+    rpt = map_xen_pagetable_new(rpt_mfn);
     clear_page(rpt);
-    per_cpu(root_pgt, cpu) = rpt;
+    per_cpu(root_pgt_mfn, cpu) = rpt_mfn;
 
     rpt[root_table_offset(RO_MPT_VIRT_START)] =
         idle_pg_table[root_table_offset(RO_MPT_VIRT_START)];
@@ -856,7 +864,7 @@ static int setup_cpu_root_pgt(unsigned int cpu)
             rc = clone_mapping(ptr, rpt);
 
         if ( rc )
-            return rc;
+            goto out;
 
         common_pgt = rpt[root_table_offset(XEN_VIRT_START)];
     }
@@ -875,19 +883,24 @@ static int setup_cpu_root_pgt(unsigned int cpu)
     if ( !rc )
         rc = clone_mapping((void *)per_cpu(stubs.addr, cpu), rpt);
 
+ out:
+    UNMAP_XEN_PAGETABLE_NEW(rpt);
     return rc;
 }
 
 static void cleanup_cpu_root_pgt(unsigned int cpu)
 {
-    root_pgentry_t *rpt = per_cpu(root_pgt, cpu);
+    mfn_t rpt_mfn = per_cpu(root_pgt_mfn, cpu);
+    root_pgentry_t *rpt;
     unsigned int r;
     unsigned long stub_linear = per_cpu(stubs.addr, cpu);
 
-    if ( !rpt )
+    if ( mfn_eq(rpt_mfn, INVALID_MFN) )
         return;
 
-    per_cpu(root_pgt, cpu) = NULL;
+    per_cpu(root_pgt_mfn, cpu) = INVALID_MFN;
+
+    rpt = map_xen_pagetable_new(rpt_mfn);
 
     for ( r = root_table_offset(DIRECTMAP_VIRT_START);
           r < root_table_offset(HYPERVISOR_VIRT_END); ++r )
@@ -932,7 +945,8 @@ static void cleanup_cpu_root_pgt(unsigned int cpu)
         free_xen_pagetable_new(l3t_mfn);
     }
 
-    free_xen_pagetable(rpt);
+    UNMAP_XEN_PAGETABLE_NEW(rpt);
+    free_xen_pagetable_new(rpt_mfn);
 
     /* Also zap the stub mapping for this CPU. */
     if ( stub_linear )
@@ -1138,7 +1152,7 @@ void __init smp_prepare_cpus(void)
     rc = setup_cpu_root_pgt(0);
     if ( rc )
         panic("Error %d setting up PV root page table\n", rc);
-    if ( per_cpu(root_pgt, 0) )
+    if ( !mfn_eq(per_cpu(root_pgt_mfn, 0), INVALID_MFN) )
     {
         get_cpu_info()->pv_cr3 = 0;
 
