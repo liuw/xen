@@ -1015,8 +1015,8 @@ void __init subarch_init_memory(void)
 long subarch_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
 {
     struct xen_machphys_mfn_list xmml;
-    l3_pgentry_t l3e;
-    l2_pgentry_t l2e;
+    l3_pgentry_t l3e, *l3t;
+    l2_pgentry_t l2e, *l2t;
     unsigned long v, limit;
     xen_pfn_t mfn, last_mfn;
     unsigned int i;
@@ -1035,13 +1035,18 @@ long subarch_memory_op(unsigned long cmd, XEN_GUEST_HANDLE_PARAM(void) arg)
               (v < (unsigned long)(machine_to_phys_mapping + max_page));
               i++, v += 1UL << L2_PAGETABLE_SHIFT )
         {
-            l3e = l4e_to_l3e(idle_pg_table[l4_table_offset(v)])[
-                l3_table_offset(v)];
+            l3t = map_xen_pagetable_new(
+                l4e_get_mfn(idle_pg_table[l4_table_offset(v)]));
+            l3e = l3t[l3_table_offset(v)];
+            unmap_xen_pagetable_new(l3t);
+
             if ( !(l3e_get_flags(l3e) & _PAGE_PRESENT) )
                 mfn = last_mfn;
             else if ( !(l3e_get_flags(l3e) & _PAGE_PSE) )
             {
-                l2e = l3e_to_l2e(l3e)[l2_table_offset(v)];
+                l2t = map_xen_pagetable_new(l3e_get_mfn(l3e));
+                l2e = l2t[l2_table_offset(v)];
+                unmap_xen_pagetable_new(l2t);
                 if ( l2e_get_flags(l2e) & _PAGE_PRESENT )
                     mfn = l2e_get_pfn(l2e);
                 else
