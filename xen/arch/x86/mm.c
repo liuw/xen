@@ -5158,12 +5158,14 @@ int map_pages_to_xen(
             /* Normal page mapping. */
             if ( !(l2e_get_flags(*pl2e) & _PAGE_PRESENT) )
             {
+                /* XXX This forces page table to be populated */
                 pl1e = virt_to_xen_l1e(virt);
                 if ( pl1e == NULL )
                 {
                     ASSERT(rc == -ENOMEM);
                     goto out;
                 }
+                unmap_xen_pagetable_new(pl1e); pl1e = NULL;
             }
             else if ( l2e_get_flags(*pl2e) & _PAGE_PSE )
             {
@@ -5227,9 +5229,11 @@ int map_pages_to_xen(
                 }
             }
 
-            pl1e  = l2e_to_l1e(*pl2e) + l1_table_offset(virt);
+            pl1e  = map_xen_pagetable_new(l2e_get_mfn((*pl2e)));
+            pl1e += l1_table_offset(virt);
             ol1e  = *pl1e;
             l1e_write_atomic(pl1e, l1e_from_mfn(mfn, flags));
+            unmap_xen_pagetable_new(pl1e); pl1e = NULL;
             if ( (l1e_get_flags(ol1e) & _PAGE_PRESENT) )
             {
                 unsigned int flush_flags = FLUSH_TLB | FLUSH_ORDER(0);
