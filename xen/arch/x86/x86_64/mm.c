@@ -252,11 +252,13 @@ static void destroy_compat_m2p_mapping(struct mem_hotadd_info *info)
     if ( emap > ((RDWR_COMPAT_MPT_VIRT_END - RDWR_COMPAT_MPT_VIRT_START) >> 2) )
         emap = (RDWR_COMPAT_MPT_VIRT_END - RDWR_COMPAT_MPT_VIRT_START) >> 2;
 
-    l3_ro_mpt = l4e_to_l3e(idle_pg_table[l4_table_offset(HIRO_COMPAT_MPT_VIRT_START)]);
+    l3_ro_mpt = map_xen_pagetable_new(
+        l4e_get_mfn(idle_pg_table[l4_table_offset(HIRO_COMPAT_MPT_VIRT_START)]));
 
     ASSERT(l3e_get_flags(l3_ro_mpt[l3_table_offset(HIRO_COMPAT_MPT_VIRT_START)]) & _PAGE_PRESENT);
 
-    l2_ro_mpt = l3e_to_l2e(l3_ro_mpt[l3_table_offset(HIRO_COMPAT_MPT_VIRT_START)]);
+    l2_ro_mpt = map_xen_pagetable_new(
+        l3e_get_mfn(l3_ro_mpt[l3_table_offset(HIRO_COMPAT_MPT_VIRT_START)]));
 
     for ( i = smap; i < emap; )
     {
@@ -277,6 +279,9 @@ static void destroy_compat_m2p_mapping(struct mem_hotadd_info *info)
 
         i += 1UL << (L2_PAGETABLE_SHIFT - 2);
     }
+
+    unmap_xen_pagetable_new(l2_ro_mpt);
+    unmap_xen_pagetable_new(l3_ro_mpt);
 
     return;
 }
