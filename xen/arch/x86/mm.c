@@ -4727,10 +4727,10 @@ mfn_t alloc_xen_pagetable_new(void)
 {
     if ( system_state != SYS_STATE_early_boot )
     {
-        void *ptr = alloc_xenheap_page();
+        struct page_info *pg = alloc_domheap_page(NULL, 0);
 
-        BUG_ON(!hardware_domain && !ptr);
-        return virt_to_mfn(ptr);
+        BUG_ON(!hardware_domain && !pg);
+        return pg ? page_to_mfn(pg) : INVALID_MFN;
     }
 
     return alloc_boot_pages(1, 1);
@@ -4738,20 +4738,21 @@ mfn_t alloc_xen_pagetable_new(void)
 
 void *map_xen_pagetable_new(mfn_t mfn)
 {
-    return mfn_to_virt(mfn_x(mfn));
+    return map_domain_page(mfn);
 }
 
 /* v can point to an entry within a table or be NULL */
 void unmap_xen_pagetable_new(void *v)
 {
-    /* XXX still using xenheap page, no need to do anything.  */
+    if ( v )
+        unmap_domain_page((const void *)((unsigned long)v & PAGE_MASK));
 }
 
 /* mfn can be INVALID_MFN */
 void free_xen_pagetable_new(mfn_t mfn)
 {
     if ( system_state != SYS_STATE_early_boot && !mfn_eq(mfn, INVALID_MFN) )
-        free_xenheap_page(mfn_to_virt(mfn_x(mfn)));
+        free_domheap_page(mfn_to_page(mfn));
 }
 
 static DEFINE_SPINLOCK(map_pgdir_lock);
