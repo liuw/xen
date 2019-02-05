@@ -929,8 +929,8 @@ static int extend_frame_table(struct mem_hotadd_info *info)
 void __init subarch_init_memory(void)
 {
     unsigned long i, n, v, m2p_start_mfn;
-    l3_pgentry_t l3e;
-    l2_pgentry_t l2e;
+    l3_pgentry_t l3e, *l3t;
+    l2_pgentry_t l2e, *l2t;
 
     BUILD_BUG_ON(RDWR_MPT_VIRT_START & ((1UL << L3_PAGETABLE_SHIFT) - 1));
     BUILD_BUG_ON(RDWR_MPT_VIRT_END   & ((1UL << L3_PAGETABLE_SHIFT) - 1));
@@ -940,14 +940,22 @@ void __init subarch_init_memory(void)
           v += n << PAGE_SHIFT )
     {
         n = L2_PAGETABLE_ENTRIES * L1_PAGETABLE_ENTRIES;
-        l3e = l4e_to_l3e(idle_pg_table[l4_table_offset(v)])[
-            l3_table_offset(v)];
+
+        l3t = map_xen_pagetable_new(
+            l4e_get_mfn(idle_pg_table[l4_table_offset(v)]));
+        l3e = l3t[l3_table_offset(v)];
+        UNMAP_XEN_PAGETABLE_NEW(l3t);
+
         if ( !(l3e_get_flags(l3e) & _PAGE_PRESENT) )
             continue;
         if ( !(l3e_get_flags(l3e) & _PAGE_PSE) )
         {
             n = L1_PAGETABLE_ENTRIES;
-            l2e = l3e_to_l2e(l3e)[l2_table_offset(v)];
+
+            l2t = map_xen_pagetable_new(l3e_get_mfn(l3e));
+            l2e = l2t[l2_table_offset(v)];
+            UNMAP_XEN_PAGETABLE_NEW(l2t);
+
             if ( !(l2e_get_flags(l2e) & _PAGE_PRESENT) )
                 continue;
             m2p_start_mfn = l2e_get_pfn(l2e);
@@ -966,11 +974,18 @@ void __init subarch_init_memory(void)
           v != RDWR_COMPAT_MPT_VIRT_END;
           v += 1 << L2_PAGETABLE_SHIFT )
     {
-        l3e = l4e_to_l3e(idle_pg_table[l4_table_offset(v)])[
-            l3_table_offset(v)];
+        l3t = map_xen_pagetable_new(
+            l4e_get_mfn(idle_pg_table[l4_table_offset(v)]));
+        l3e = l3t[l3_table_offset(v)];
+        UNMAP_XEN_PAGETABLE_NEW(l3t);
+
         if ( !(l3e_get_flags(l3e) & _PAGE_PRESENT) )
             continue;
-        l2e = l3e_to_l2e(l3e)[l2_table_offset(v)];
+
+        l2t = map_xen_pagetable_new(l3e_get_mfn(l3e));
+        l2e = l2t[l2_table_offset(v)];
+        UNMAP_XEN_PAGETABLE_NEW(l2t);
+
         if ( !(l2e_get_flags(l2e) & _PAGE_PRESENT) )
             continue;
         m2p_start_mfn = l2e_get_pfn(l2e);
