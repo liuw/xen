@@ -4723,22 +4723,6 @@ int mmcfg_intercept_write(
     return X86EMUL_OKAY;
 }
 
-void *alloc_xen_pagetable(void)
-{
-    mfn_t mfn;
-
-    mfn = alloc_xen_pagetable_new();
-    ASSERT(!mfn_eq(mfn, INVALID_MFN));
-
-    return map_xen_pagetable_new(mfn);
-}
-
-void free_xen_pagetable(void *v)
-{
-    if ( system_state != SYS_STATE_early_boot )
-        free_xen_pagetable_new(virt_to_mfn(v));
-}
-
 mfn_t alloc_xen_pagetable_new(void)
 {
     if ( system_state != SYS_STATE_early_boot )
