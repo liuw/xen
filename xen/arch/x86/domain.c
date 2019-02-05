@@ -1589,12 +1589,16 @@ void paravirt_ctxt_switch_from(struct vcpu *v)
 
 void paravirt_ctxt_switch_to(struct vcpu *v)
 {
-    root_pgentry_t *root_pgt = this_cpu(root_pgt);
+    mfn_t rpt_mfn = this_cpu(root_pgt_mfn);
 
-    if ( root_pgt )
-        root_pgt[root_table_offset(PERDOMAIN_VIRT_START)] =
+    if ( !mfn_eq(rpt_mfn, INVALID_MFN) )
+    {
+        root_pgentry_t *rpt = map_xen_pagetable_new(rpt_mfn);
+        rpt[root_table_offset(PERDOMAIN_VIRT_START)] =
             l4e_from_page(v->domain->arch.perdomain_l3_pg,
                           __PAGE_HYPERVISOR_RW);
+        unmap_xen_pagetable_new(rpt);
+    }
 
     if ( unlikely(v->arch.dr7 & DR7_ACTIVE_MASK) )
         activate_debugregs(v);

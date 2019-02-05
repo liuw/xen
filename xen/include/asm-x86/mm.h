@@ -650,4 +650,6 @@ void unmap_xen_pagetable_new(void *v);
 void free_xen_pagetable_new(mfn_t mfn);
 l1_pgentry_t *virt_to_xen_l1e(unsigned long v);
 
+DECLARE_PER_CPU(mfn_t, root_pgt_mfn);
+
 #endif /* __ASM_X86_MM_H__ */
