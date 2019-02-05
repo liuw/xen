@@ -166,8 +166,8 @@ static int share_hotadd_m2p_table(struct mem_hotadd_info *info)
 {
     unsigned long i, n, v;
     mfn_t m2p_start_mfn = INVALID_MFN;
-    l3_pgentry_t l3e;
-    l2_pgentry_t l2e;
+    l3_pgentry_t l3e, *l3t;
+    l2_pgentry_t l2e, *l2t;
 
     /* M2P table is mappable read-only by privileged domains. */
     for ( v  = RDWR_MPT_VIRT_START;
@@ -175,14 +175,22 @@ static int share_hotadd_m2p_table(struct mem_hotadd_info *info)
           v += n << PAGE_SHIFT )
     {
         n = L2_PAGETABLE_ENTRIES * L1_PAGETABLE_ENTRIES;
-        l3e = l4e_to_l3e(idle_pg_table[l4_table_offset(v)])[
-            l3_table_offset(v)];
+
+        l3t = map_xen_pagetable_new(
+            l4e_get_mfn(idle_pg_table[l4_table_offset(v)]));
+        l3e = l3t[l3_table_offset(v)];
+        unmap_xen_pagetable_new(l3t);
+
         if ( !(l3e_get_flags(l3e) & _PAGE_PRESENT) )
             continue;
         if ( !(l3e_get_flags(l3e) & _PAGE_PSE) )
         {
             n = L1_PAGETABLE_ENTRIES;
-            l2e = l3e_to_l2e(l3e)[l2_table_offset(v)];
+
+            l2t = map_xen_pagetable_new(l3e_get_mfn(l3e));
+            l2e = l2t[l2_table_offset(v)];
+            unmap_xen_pagetable_new(l2t);
+
             if ( !(l2e_get_flags(l2e) & _PAGE_PRESENT) )
                 continue;
             m2p_start_mfn = l2e_get_mfn(l2e);
@@ -203,11 +211,18 @@ static int share_hotadd_m2p_table(struct mem_hotadd_info *info)
           v != RDWR_COMPAT_MPT_VIRT_END;
           v += 1 << L2_PAGETABLE_SHIFT )
     {
-        l3e = l4e_to_l3e(idle_pg_table[l4_table_offset(v)])[
-            l3_table_offset(v)];
+        l3t = map_xen_pagetable_new(
+            l4e_get_mfn(idle_pg_table[l4_table_offset(v)]));
+        l3e = l3t[l3_table_offset(v)];
+        unmap_xen_pagetable_new(l3t);
+
         if ( !(l3e_get_flags(l3e) & _PAGE_PRESENT) )
             continue;
-        l2e = l3e_to_l2e(l3e)[l2_table_offset(v)];
+
+        l2t = map_xen_pagetable_new(l3e_get_mfn(l3e));
+        l2e = l2t[l2_table_offset(v)];
+        unmap_xen_pagetable_new(l2t);
+
         if ( !(l2e_get_flags(l2e) & _PAGE_PRESENT) )
             continue;
         m2p_start_mfn = l2e_get_mfn(l2e);
