@@ -57,7 +57,7 @@ static inline struct vcpu *mapcache_current_vcpu(void)
     return v;
 }
 
-void __init mapcache_override_current(struct vcpu *v)
+void mapcache_override_current(struct vcpu *v)
 {
     this_cpu(override) = v;
 }

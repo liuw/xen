@@ -303,7 +303,7 @@ static void _toggle_guest_pt(struct vcpu *v)
         struct cpu_info *cpu_info = get_cpu_info();
 
         cpu_info->root_pgt_changed = true;
-        cpu_info->pv_cr3 = __pa(this_cpu(root_pgt)) |
+        cpu_info->pv_cr3 = mfn_to_maddr(this_cpu(root_pgt_mfn)) |
                            (d->arch.pv.pcid ? get_pcid_bits(v, true) : 0);
     }
 

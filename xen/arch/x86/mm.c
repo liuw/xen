@@ -564,7 +564,7 @@ void write_ptbase(struct vcpu *v)
     if ( is_pv_vcpu(v) && v->domain->arch.pv.xpti )
     {
         cpu_info->root_pgt_changed = true;
-        cpu_info->pv_cr3 = __pa(this_cpu(root_pgt));
+        cpu_info->pv_cr3 = mfn_to_maddr(this_cpu(root_pgt_mfn));
         if ( new_cr4 & X86_CR4_PCIDE )
             cpu_info->pv_cr3 |= get_pcid_bits(v, true);
         switch_cr3_cr4(v->arch.cr3, new_cr4);
