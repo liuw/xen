@@ -1079,13 +1079,17 @@ void __init noreturn __start_xen(unsigned long mbi_p)
             pl4e = __va(__pa(idle_pg_table));
             for ( i = 0 ; i < L4_PAGETABLE_ENTRIES; i++, pl4e++ )
             {
+                l3_pgentry_t *l3t;
+
                 if ( !(l4e_get_flags(*pl4e) & _PAGE_PRESENT) )
                     continue;
                 *pl4e = l4e_from_intpte(l4e_get_intpte(*pl4e) +
                                         xen_phys_start);
-                pl3e = l4e_to_l3e(*pl4e);
+                pl3e = l3t = map_xen_pagetable_new(l4e_get_mfn(*pl4e));
                 for ( j = 0; j < L3_PAGETABLE_ENTRIES; j++, pl3e++ )
                 {
+                    l2_pgentry_t *l2t;
+
                     /* Not present, 1GB mapping, or already relocated? */
                     if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) ||
                          (l3e_get_flags(*pl3e) & _PAGE_PSE) ||
@@ -1093,7 +1097,7 @@ void __init noreturn __start_xen(unsigned long mbi_p)
                         continue;
                     *pl3e = l3e_from_intpte(l3e_get_intpte(*pl3e) +
                                             xen_phys_start);
-                    pl2e = l3e_to_l2e(*pl3e);
+                    pl2e = l2t = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
                     for ( k = 0; k < L2_PAGETABLE_ENTRIES; k++, pl2e++ )
                     {
                         /* Not present, PSE, or already relocated? */
@@ -1104,7 +1108,9 @@ void __init noreturn __start_xen(unsigned long mbi_p)
                         *pl2e = l2e_from_intpte(l2e_get_intpte(*pl2e) +
                                                 xen_phys_start);
                     }
+                    unmap_xen_pagetable_new(l2t);
                 }
+                unmap_xen_pagetable_new(l3t);
             }
 
             /* The only data mappings to be relocated are in the Xen area. */
