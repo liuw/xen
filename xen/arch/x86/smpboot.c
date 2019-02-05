@@ -951,11 +951,17 @@ static void cleanup_cpu_root_pgt(unsigned int cpu)
     /* Also zap the stub mapping for this CPU. */
     if ( stub_linear )
     {
-        l3_pgentry_t *l3t = l4e_to_l3e(common_pgt);
-        l2_pgentry_t *l2t = l3e_to_l2e(l3t[l3_table_offset(stub_linear)]);
-        l1_pgentry_t *l1t = l2e_to_l1e(l2t[l2_table_offset(stub_linear)]);
+        l3_pgentry_t *l3t = map_xen_pagetable_new(l4e_get_mfn(common_pgt));
+        l2_pgentry_t *l2t = map_xen_pagetable_new(
+            l3e_get_mfn(l3t[l3_table_offset(stub_linear)]));
+        l1_pgentry_t *l1t = map_xen_pagetable_new(
+            l2e_get_mfn(l2t[l2_table_offset(stub_linear)]));
 
         l1t[l1_table_offset(stub_linear)] = l1e_empty();
+
+        UNMAP_XEN_PAGETABLE_NEW(l1t);
+        UNMAP_XEN_PAGETABLE_NEW(l2t);
+        UNMAP_XEN_PAGETABLE_NEW(l3t);
     }
 }
 
