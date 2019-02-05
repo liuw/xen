@@ -5647,11 +5647,14 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
 
         {
             l2_pgentry_t *l2t;
+            mfn_t l2t_mfn;
 
-            l2t = l3e_to_l2e(*pl3e);
+            l2t_mfn = l3e_get_mfn(*pl3e);
+            l2t = map_xen_pagetable_new(l2t_mfn);
             for ( i = 0; i < L2_PAGETABLE_ENTRIES; i++ )
                 if ( l2e_get_intpte(l2t[i]) != 0 )
                     break;
+            unmap_xen_pagetable_new(l2t);
             if ( i == L2_PAGETABLE_ENTRIES )
             {
                 /* Empty: zap the L3E and free the L2 page. */
@@ -5659,7 +5662,7 @@ int modify_xen_mappings(unsigned long s, unsigned long e, unsigned int nf)
                 if ( locking )
                     spin_unlock(&map_pgdir_lock);
                 flush_area(NULL, FLUSH_TLB_GLOBAL); /* flush before free */
-                free_xen_pagetable(l2t);
+                free_xen_pagetable_new(l2t_mfn);
             }
             else if ( locking )
                 spin_unlock(&map_pgdir_lock);
