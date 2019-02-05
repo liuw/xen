@@ -800,8 +800,8 @@ void free_compat_arg_xlat(struct vcpu *v)
 static void cleanup_frame_table(struct mem_hotadd_info *info)
 {
     unsigned long sva, eva;
-    l3_pgentry_t l3e;
-    l2_pgentry_t l2e;
+    l3_pgentry_t l3e, *l3t;
+    l2_pgentry_t l2e, *l2t;
     mfn_t spfn, epfn;
 
     spfn = _mfn(info->spfn);
@@ -815,8 +815,10 @@ static void cleanup_frame_table(struct mem_hotadd_info *info)
 
     while (sva < eva)
     {
-        l3e = l4e_to_l3e(idle_pg_table[l4_table_offset(sva)])[
-          l3_table_offset(sva)];
+        l3t = map_xen_pagetable_new(
+            l4e_get_mfn(idle_pg_table[l4_table_offset(sva)]));
+        l3e = l3t[l3_table_offset(sva)];
+        UNMAP_XEN_PAGETABLE_NEW(l3t);
         if ( !(l3e_get_flags(l3e) & _PAGE_PRESENT) ||
              (l3e_get_flags(l3e) & _PAGE_PSE) )
         {
@@ -825,7 +827,9 @@ static void cleanup_frame_table(struct mem_hotadd_info *info)
             continue;
         }
 
-        l2e = l3e_to_l2e(l3e)[l2_table_offset(sva)];
+        l2t = map_xen_pagetable_new(l3e_get_mfn(l3e));
+        l2e = l2t[l2_table_offset(sva)];
+        UNMAP_XEN_PAGETABLE_NEW(l2t);
         ASSERT(l2e_get_flags(l2e) & _PAGE_PRESENT);
 
         if ( (l2e_get_flags(l2e) & (_PAGE_PRESENT | _PAGE_PSE)) ==
@@ -841,8 +845,14 @@ static void cleanup_frame_table(struct mem_hotadd_info *info)
             continue;
         }
 
-        ASSERT(l1e_get_flags(l2e_to_l1e(l2e)[l1_table_offset(sva)]) &
-                _PAGE_PRESENT);
+#ifndef NDEBUG
+        {
+            l1_pgentry_t *l1t = map_xen_pagetable_new(l2e_get_mfn(l2e));
+            ASSERT(l1e_get_flags(l1t[l1_table_offset(sva)]) &
+                   _PAGE_PRESENT);
+            UNMAP_XEN_PAGETABLE_NEW(l1t);
+        }
+#endif
          sva = (sva & ~((1UL << PAGE_SHIFT) - 1)) +
                     (1UL << PAGE_SHIFT);
     }
