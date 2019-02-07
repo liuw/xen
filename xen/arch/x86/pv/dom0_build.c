@@ -55,11 +55,11 @@ static __init void mark_pv_pt_pages_rdonly(struct domain *d,
     l1_pgentry_t *pl1e, *l1t;
 
     pl4e = l4start + l4_table_offset(vpt_start);
-    l3t = map_xen_pagetable_new(l4e_get_mfn(*pl4e));
+    l3t = map_xen_pagetable(l4e_get_mfn(*pl4e));
     pl3e = l3t + l3_table_offset(vpt_start);
-    l2t = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
+    l2t = map_xen_pagetable(l3e_get_mfn(*pl3e));
     pl2e = l2t + l2_table_offset(vpt_start);
-    l1t = map_xen_pagetable_new(l2e_get_mfn(*pl2e));
+    l1t = map_xen_pagetable(l2e_get_mfn(*pl2e));
     pl1e = l1t + l1_table_offset(vpt_start);
     for ( count = 0; count < nr_pt_pages; count++ )
     {
@@ -86,22 +86,22 @@ static __init void mark_pv_pt_pages_rdonly(struct domain *d,
             {
                 if ( !((unsigned long)++pl3e & (PAGE_SIZE - 1)) )
                 {
-                    UNMAP_XEN_PAGETABLE_NEW(l3t);
-                    l3t = map_xen_pagetable_new(l4e_get_mfn(*++pl4e));
+                    UNMAP_XEN_PAGETABLE(l3t);
+                    l3t = map_xen_pagetable(l4e_get_mfn(*++pl4e));
                     pl3e = l3t;
                 }
-                UNMAP_XEN_PAGETABLE_NEW(l2t);
-                l2t = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
+                UNMAP_XEN_PAGETABLE(l2t);
+                l2t = map_xen_pagetable(l3e_get_mfn(*pl3e));
                 pl2e = l2t;
             }
-            UNMAP_XEN_PAGETABLE_NEW(l1t);
-            l1t = map_xen_pagetable_new(l2e_get_mfn(*pl2e));
+            UNMAP_XEN_PAGETABLE(l1t);
+            l1t = map_xen_pagetable(l2e_get_mfn(*pl2e));
             pl1e = l1t;
         }
     }
-    UNMAP_XEN_PAGETABLE_NEW(l1t);
-    UNMAP_XEN_PAGETABLE_NEW(l2t);
-    UNMAP_XEN_PAGETABLE_NEW(l3t);
+    UNMAP_XEN_PAGETABLE(l1t);
+    UNMAP_XEN_PAGETABLE(l2t);
+    UNMAP_XEN_PAGETABLE(l3t);
 }
 
 static __init void setup_pv_physmap(struct domain *d, unsigned long pgtbl_pfn,
@@ -706,9 +706,9 @@ int __init dom0_construct_pv(struct domain *d,
                 l3e_get_page(*l3tab)->u.inuse.type_info |= PGT_pae_xen_l2;
         }
 
-        l2t = map_xen_pagetable_new(l3e_get_mfn(l3start[3]));
+        l2t = map_xen_pagetable(l3e_get_mfn(l3start[3]));
         init_xen_pae_l2_slots(l2t, d);
-        UNMAP_XEN_PAGETABLE_NEW(l2t);
+        UNMAP_XEN_PAGETABLE(l2t);
     }
 
     /* Pages that are part of page tables must be read only. */
