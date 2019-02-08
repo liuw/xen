@@ -171,11 +171,11 @@ static void __init replace_va_mapping(struct domain *d, l4_pgentry_t *l4start,
     l2_pgentry_t *pl2e;
     l1_pgentry_t *pl1e;
 
-    pl3e = map_xen_pagetable_new(l4e_get_mfn(*pl4e));
+    pl3e = map_xen_pagetable(l4e_get_mfn(*pl4e));
     pl3e += l3_table_offset(va);
-    pl2e = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
+    pl2e = map_xen_pagetable(l3e_get_mfn(*pl3e));
     pl2e += l2_table_offset(va);
-    pl1e = map_xen_pagetable_new(l2e_get_mfn(*pl2e));
+    pl1e = map_xen_pagetable(l2e_get_mfn(*pl2e));
     pl1e += l1_table_offset(va);
 
     put_page_and_type(mfn_to_page(l1e_get_mfn(*pl1e)));
@@ -183,9 +183,9 @@ static void __init replace_va_mapping(struct domain *d, l4_pgentry_t *l4start,
     *pl1e = l1e_from_mfn(mfn, (!is_pv_32bit_domain(d) ? L1_PROT
                                                       : COMPAT_L1_PROT));
 
-    UNMAP_XEN_PAGETABLE_NEW(pl1e);
-    UNMAP_XEN_PAGETABLE_NEW(pl2e);
-    UNMAP_XEN_PAGETABLE_NEW(pl3e);
+    UNMAP_XEN_PAGETABLE(pl1e);
+    UNMAP_XEN_PAGETABLE(pl2e);
+    UNMAP_XEN_PAGETABLE(pl3e);
 }
 
 static void evtchn_reserve(struct domain *d, unsigned int port)

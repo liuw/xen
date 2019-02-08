@@ -10,9 +10,9 @@ void efi_update_l4_pgtable(unsigned int l4idx, l4_pgentry_t l4e)
     {
         l4_pgentry_t *l4t;
 
-        l4t = map_xen_pagetable_new(efi_l4_mfn);
+        l4t = map_xen_pagetable(efi_l4_mfn);
         l4e_write(l4t + l4idx, l4e);
-        UNMAP_XEN_PAGETABLE_NEW(l4t);
+        UNMAP_XEN_PAGETABLE(l4t);
     }
 }
 #endif

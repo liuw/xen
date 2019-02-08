@@ -343,7 +343,7 @@ mfn_t domain_page_map_to_mfn(const void *ptr)
         l1_pgentry_t *pl1e = virt_to_xen_l1e(va);
         BUG_ON(!pl1e);
         l1e = *pl1e;
-        UNMAP_XEN_PAGETABLE_NEW(pl1e);
+        UNMAP_XEN_PAGETABLE(pl1e);
     }
     else
     {

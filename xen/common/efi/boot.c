@@ -1443,20 +1443,20 @@ static __init void copy_mapping(l4_pgentry_t *l4,
         {
             mfn_t l3t_mfn;
 
-            l3t_mfn = alloc_xen_pagetable_new();
+            l3t_mfn = alloc_xen_pagetable();
             BUG_ON(mfn_eq(l3t_mfn, INVALID_MFN));
-            l3dst = map_xen_pagetable_new(l3t_mfn);
+            l3dst = map_xen_pagetable(l3t_mfn);
             clear_page(l3dst);
             l4[l4_table_offset(mfn << PAGE_SHIFT)] =
                 l4e_from_mfn(l3t_mfn, __PAGE_HYPERVISOR);
         }
         else
-            l3dst = map_xen_pagetable_new(l4e_get_mfn(l4e));
-        l3src = map_xen_pagetable_new(
+            l3dst = map_xen_pagetable(l4e_get_mfn(l4e));
+        l3src = map_xen_pagetable(
             l4e_get_mfn(idle_pg_table[l4_table_offset(va)]));
         l3dst[l3_table_offset(mfn << PAGE_SHIFT)] = l3src[l3_table_offset(va)];
-        UNMAP_XEN_PAGETABLE_NEW(l3src);
-        UNMAP_XEN_PAGETABLE_NEW(l3dst);
+        UNMAP_XEN_PAGETABLE(l3src);
+        UNMAP_XEN_PAGETABLE(l3dst);
     }
 }
 
@@ -1604,9 +1604,9 @@ void __init efi_init_memory(void)
                                  mdesc_ver, efi_memmap);
 #else
     /* Set up 1:1 page tables to do runtime calls in "physical" mode. */
-    efi_l4_mfn = alloc_xen_pagetable_new();
+    efi_l4_mfn = alloc_xen_pagetable();
     BUG_ON(mfn_eq(efi_l4_mfn, INVALID_MFN));
-    efi_l4_pgtable = map_xen_pagetable_new(efi_l4_mfn);
+    efi_l4_pgtable = map_xen_pagetable(efi_l4_mfn);
     clear_page(efi_l4_pgtable);
 
     copy_mapping(efi_l4_pgtable, 0, max_page, ram_range_valid);
@@ -1641,31 +1641,31 @@ void __init efi_init_memory(void)
         {
             mfn_t l3t_mfn;
 
-            l3t_mfn = alloc_xen_pagetable_new();
+            l3t_mfn = alloc_xen_pagetable();
             BUG_ON(mfn_eq(l3t_mfn, INVALID_MFN));
-            pl3e = map_xen_pagetable_new(l3t_mfn);
+            pl3e = map_xen_pagetable(l3t_mfn);
             clear_page(pl3e);
             efi_l4_pgtable[l4_table_offset(addr)] =
                 l4e_from_mfn(l3t_mfn, __PAGE_HYPERVISOR);
         }
         else
-            pl3e = map_xen_pagetable_new(l4e_get_mfn(l4e));
+            pl3e = map_xen_pagetable(l4e_get_mfn(l4e));
         pl3e += l3_table_offset(addr);
 
         if ( !(l3e_get_flags(*pl3e) & _PAGE_PRESENT) )
         {
             mfn_t l2t_mfn;
 
-            l2t_mfn = alloc_xen_pagetable_new();
+            l2t_mfn = alloc_xen_pagetable();
             BUG_ON(mfn_eq(l2t_mfn, INVALID_MFN));
-            pl2e = map_xen_pagetable_new(l2t_mfn);
+            pl2e = map_xen_pagetable(l2t_mfn);
             clear_page(pl2e);
             *pl3e = l3e_from_mfn(l2t_mfn, __PAGE_HYPERVISOR);
         }
         else
         {
             BUG_ON(l3e_get_flags(*pl3e) & _PAGE_PSE);
-            pl2e = map_xen_pagetable_new(l3e_get_mfn(*pl3e));
+            pl2e = map_xen_pagetable(l3e_get_mfn(*pl3e));
         }
         pl2e += l2_table_offset(addr);
 
@@ -1673,16 +1673,16 @@ void __init efi_init_memory(void)
         {
             mfn_t l1t_mfn;
 
-            l1t_mfn = alloc_xen_pagetable_new();
+            l1t_mfn = alloc_xen_pagetable();
             BUG_ON(mfn_eq(l1t_mfn, INVALID_MFN));
-            l1t = map_xen_pagetable_new(l1t_mfn);
+            l1t = map_xen_pagetable(l1t_mfn);
             clear_page(l1t);
             *pl2e = l2e_from_mfn(l1t_mfn, __PAGE_HYPERVISOR);
         }
         else
         {
             BUG_ON(l2e_get_flags(*pl2e) & _PAGE_PSE);
-            l1t = map_xen_pagetable_new(l2e_get_mfn(*pl2e));
+            l1t = map_xen_pagetable(l2e_get_mfn(*pl2e));
         }
         for ( i = l1_table_offset(addr);
               i < L1_PAGETABLE_ENTRIES && extra->smfn < extra->emfn;
@@ -1695,9 +1695,9 @@ void __init efi_init_memory(void)
             xfree(extra);
         }
 
-        UNMAP_XEN_PAGETABLE_NEW(l1t);
-        UNMAP_XEN_PAGETABLE_NEW(pl2e);
-        UNMAP_XEN_PAGETABLE_NEW(pl3e);
+        UNMAP_XEN_PAGETABLE(l1t);
+        UNMAP_XEN_PAGETABLE(pl2e);
+        UNMAP_XEN_PAGETABLE(pl3e);
     }
 
     /* Insert Xen mappings. */
@@ -1706,7 +1706,7 @@ void __init efi_init_memory(void)
         efi_l4_pgtable[i] = idle_pg_table[i];
 #endif
 
-    UNMAP_XEN_PAGETABLE_NEW(efi_l4_pgtable);
+    UNMAP_XEN_PAGETABLE(efi_l4_pgtable);
 }
 #endif
 

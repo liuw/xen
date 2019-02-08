@@ -642,15 +642,15 @@ int arch_acquire_resource(struct domain *d, unsigned int type,
                           unsigned int *flags);
 
 /* Allocator functions for Xen pagetables. */
-mfn_t alloc_xen_pagetable_new(void);
-void *map_xen_pagetable_new(mfn_t mfn);
-void unmap_xen_pagetable_new(void *v);
-void free_xen_pagetable_new(mfn_t mfn);
+mfn_t alloc_xen_pagetable(void);
+void *map_xen_pagetable(mfn_t mfn);
+void unmap_xen_pagetable(void *v);
+void free_xen_pagetable(mfn_t mfn);
 
-#define UNMAP_XEN_PAGETABLE_NEW(ptr)    \
-    do {                                \
-        unmap_xen_pagetable_new((ptr)); \
-        (ptr) = NULL;                   \
+#define UNMAP_XEN_PAGETABLE(ptr)    \
+    do {                            \
+        unmap_xen_pagetable((ptr)); \
+        (ptr) = NULL;               \
     } while (0)
 
 l1_pgentry_t *virt_to_xen_l1e(unsigned long v);

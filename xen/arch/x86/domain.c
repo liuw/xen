@@ -1597,11 +1597,11 @@ void paravirt_ctxt_switch_to(struct vcpu *v)
         root_pgentry_t *rpt;
 
         mapcache_override_current(INVALID_VCPU);
-        rpt = map_xen_pagetable_new(rpt_mfn);
+        rpt = map_xen_pagetable(rpt_mfn);
         rpt[root_table_offset(PERDOMAIN_VIRT_START)] =
             l4e_from_page(v->domain->arch.perdomain_l3_pg,
                           __PAGE_HYPERVISOR_RW);
-        UNMAP_XEN_PAGETABLE_NEW(rpt);
+        UNMAP_XEN_PAGETABLE(rpt);
         mapcache_override_current(NULL);
     }
 
