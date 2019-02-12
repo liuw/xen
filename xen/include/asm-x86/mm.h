@@ -272,9 +272,22 @@ struct page_info
         /* When in use as a shadow, next shadow in this hash chain. */
         __pdx_t next_shadow;
     };
+
+    /* linear address if mapped as xenheap page */
+    void *linear;
 };
 
 #undef __pdx_t
+
+static inline void set_page_address(struct page_info *page, void *linear)
+{
+    page->linear = linear;
+}
+
+static inline void *get_page_address(const struct page_info *page)
+{
+    return page->linear;
+}
 
 #define is_xen_heap_page(page) ((page)->count_info & PGC_xen_heap)
 #define is_xen_heap_mfn(mfn) \

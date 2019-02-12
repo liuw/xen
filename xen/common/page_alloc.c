@@ -2181,6 +2181,7 @@ void *alloc_xenheap_pages(unsigned int order, unsigned int memflags)
 {
     struct page_info *pg;
     unsigned int i;
+    void *head, *linear;
 
     ASSERT(!in_irq());
 
@@ -2193,10 +2194,15 @@ void *alloc_xenheap_pages(unsigned int order, unsigned int memflags)
     if ( unlikely(pg == NULL) )
         return NULL;
 
-    for ( i = 0; i < (1u << order); i++ )
+    head = page_to_virt(pg);
+    for ( i = 0, linear = head; i < (1u << order);
+          i++, linear += PAGE_SIZE )
+    {
         pg[i].count_info |= PGC_xen_heap;
+        set_page_address(pg, linear);
+    }
 
-    return page_to_virt(pg);
+    return head;
 }
 
 void free_xenheap_pages(void *v, unsigned int order)
@@ -2212,7 +2218,10 @@ void free_xenheap_pages(void *v, unsigned int order)
     pg = virt_to_page(v);
 
     for ( i = 0; i < (1u << order); i++ )
+    {
         pg[i].count_info &= ~PGC_xen_heap;
+        set_page_address(pg, NULL);
+    }
 
     free_heap_pages(pg, order, true);
 }
