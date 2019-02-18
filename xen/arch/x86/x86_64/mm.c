@@ -1589,6 +1589,44 @@ destroy_frametable:
     return ret;
 }
 
+unsigned long __virt_to_maddr(unsigned long va)
+{
+    ASSERT(va < DIRECTMAP_VIRT_END);
+
+    /* XXX ??? */
+    if ( va >= VMAP_VIRT_START && va < VMAP_VIRT_END )
+        return mfn_to_maddr(vmap_to_mfn(va));
+    if ( va >= DIRECTMAP_VIRT_START )
+        va -= DIRECTMAP_VIRT_START;
+    else
+    {
+        BUILD_BUG_ON(XEN_VIRT_END - XEN_VIRT_START != GB(1));
+        /* Signed, so ((long)XEN_VIRT_START >> 30) fits in an imm32. */
+        ASSERT(((long)va >> (PAGE_ORDER_1G + PAGE_SHIFT)) ==
+               ((long)XEN_VIRT_START >> (PAGE_ORDER_1G + PAGE_SHIFT)));
+
+        va += xen_phys_start - XEN_VIRT_START;
+    }
+    return (va & ma_va_bottom_mask) |
+           ((va << pfn_pdx_hole_shift) & ma_top_mask);
+}
+
+void *__maddr_to_virt(unsigned long ma)
+{
+    /* XXX ??? */
+    if ( pfn_to_pdx(ma >> PAGE_SHIFT) < (DIRECTMAP_SIZE >> PAGE_SHIFT) )
+        return (void *)(DIRECTMAP_VIRT_START +
+                        ((ma & ma_va_bottom_mask) |
+                         ((ma & ma_top_mask) >> pfn_pdx_hole_shift)));
+    else
+    {
+        struct page_info *pg = mfn_to_page(maddr_to_mfn(ma));
+
+        ASSERT(get_page_address(pg));
+        return get_page_address(pg);
+    }
+}
+
 #include "compat/mm.c"
 
 /*

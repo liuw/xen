@@ -321,13 +321,18 @@ void init_frametable(void);
 
 #define PDX_GROUP_SHIFT L2_PAGETABLE_SHIFT
 
+l1_pgentry_t *virt_to_xen_l1e(unsigned long v);
+
 /* Convert between Xen-heap virtual addresses and page-info structures. */
 static inline struct page_info *__virt_to_page(const void *v)
 {
     unsigned long va = (unsigned long)v;
 
-    ASSERT(va >= XEN_VIRT_START);
+    ASSERT(va >= XEN_VIRT_START ||
+           (va >= VMAP_VIRT_START && va < VMAP_VIRT_END));
     ASSERT(va < DIRECTMAP_VIRT_END);
+    if ( va >= VMAP_VIRT_START && va < VMAP_VIRT_END )
+        return vmap_to_page(va);
     if ( va < XEN_VIRT_END )
         va += DIRECTMAP_VIRT_START - XEN_VIRT_START + xen_phys_start;
     else
@@ -338,6 +343,12 @@ static inline struct page_info *__virt_to_page(const void *v)
 static inline void *__page_to_virt(const struct page_info *pg)
 {
     ASSERT((unsigned long)pg - FRAMETABLE_VIRT_START < FRAMETABLE_SIZE);
+
+    /* XXX The page must have been mapped at this point */
+    ASSERT(get_page_address(pg));
+    return get_page_address(pg);
+
+#if 0
     /*
      * (sizeof(*pg) & -sizeof(*pg)) selects the LS bit of sizeof(*pg). The
      * division and re-multiplication avoids one shift when sizeof(*pg) is a
@@ -348,6 +359,7 @@ static inline void *__page_to_virt(const struct page_info *pg)
                     ((unsigned long)pg - FRAMETABLE_VIRT_START) /
                     (sizeof(*pg) / (sizeof(*pg) & -sizeof(*pg))) *
                     (PAGE_SIZE / (sizeof(*pg) & -sizeof(*pg))));
+#endif
 }
 
 int free_page_type(struct page_info *page, unsigned long type,
@@ -665,8 +677,6 @@ void free_xen_pagetable(mfn_t mfn);
         unmap_xen_pagetable((ptr)); \
         (ptr) = NULL;               \
     } while (0)
-
-l1_pgentry_t *virt_to_xen_l1e(unsigned long v);
 
 DECLARE_PER_CPU(mfn_t, root_pgt_mfn);
 

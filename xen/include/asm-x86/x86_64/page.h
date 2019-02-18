@@ -57,31 +57,8 @@ extern unsigned long xen_virt_end;
 #define pdx_to_virt(pdx) ((void *)(DIRECTMAP_VIRT_START + \
                                    ((unsigned long)(pdx) << PAGE_SHIFT)))
 
-static inline unsigned long __virt_to_maddr(unsigned long va)
-{
-    ASSERT(va < DIRECTMAP_VIRT_END);
-    if ( va >= DIRECTMAP_VIRT_START )
-        va -= DIRECTMAP_VIRT_START;
-    else
-    {
-        BUILD_BUG_ON(XEN_VIRT_END - XEN_VIRT_START != GB(1));
-        /* Signed, so ((long)XEN_VIRT_START >> 30) fits in an imm32. */
-        ASSERT(((long)va >> (PAGE_ORDER_1G + PAGE_SHIFT)) ==
-               ((long)XEN_VIRT_START >> (PAGE_ORDER_1G + PAGE_SHIFT)));
-
-        va += xen_phys_start - XEN_VIRT_START;
-    }
-    return (va & ma_va_bottom_mask) |
-           ((va << pfn_pdx_hole_shift) & ma_top_mask);
-}
-
-static inline void *__maddr_to_virt(unsigned long ma)
-{
-    ASSERT(pfn_to_pdx(ma >> PAGE_SHIFT) < (DIRECTMAP_SIZE >> PAGE_SHIFT));
-    return (void *)(DIRECTMAP_VIRT_START +
-                    ((ma & ma_va_bottom_mask) |
-                     ((ma & ma_top_mask) >> pfn_pdx_hole_shift)));
-}
+unsigned long __virt_to_maddr(unsigned long va);
+void *__maddr_to_virt(unsigned long ma);
 
 /* read access (should only be used for debug printk's) */
 typedef u64 intpte_t;
