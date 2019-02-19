@@ -522,18 +522,32 @@ int __init dom0_construct_pv(struct domain *d,
         if ( d->arch.physaddr_bitsize &&
              ((mfn + count - 1) >> (d->arch.physaddr_bitsize - PAGE_SHIFT)) )
         {
+            unsigned int nr_pages;
+            unsigned int len = initrd_len;
+            struct page_info *pg;
+
             order = get_order_from_pages(count);
             page = alloc_domheap_pages(d, order, MEMF_no_scrub);
             if ( !page )
                 panic("Not enough RAM for domain 0 initrd\n");
+
+            nr_pages = 1UL << order;
             for ( count = -count; order--; )
                 if ( count & (1UL << order) )
                 {
                     free_domheap_pages(page, order);
                     page += 1UL << order;
+                    nr_pages -= 1UL << order;
                 }
-            memcpy(page_to_virt(page), mfn_to_virt(initrd->mod_start),
-                   initrd_len);
+
+            for ( pg = page, i = 0; i < nr_pages; i++, len -= PAGE_SIZE, pg++ )
+            {
+                void *p = __map_domain_page(pg);
+                memcpy(p, mfn_to_virt(initrd->mod_start) + i * PAGE_SIZE,
+                       len > PAGE_SIZE ? PAGE_SIZE : len);
+                unmap_domain_page(p);
+            }
+
             mpt_alloc = (paddr_t)initrd->mod_start << PAGE_SHIFT;
             init_domheap_pages(mpt_alloc,
                                mpt_alloc + PAGE_ALIGN(initrd_len));
