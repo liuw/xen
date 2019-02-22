@@ -268,19 +268,28 @@ static void *vmalloc_type(size_t size, enum vmap_region type)
 {
     mfn_t *mfn;
     size_t pages, i;
-    struct page_info *pg;
+    struct page_info *tmp_page;
     void *va;
+    unsigned int order;
 
     ASSERT(size);
 
     pages = PFN_UP(size);
-    mfn = xmalloc_array(mfn_t, pages);
-    if ( mfn == NULL )
+    order = get_order_from_bytes(pages * sizeof(mfn_t));
+    tmp_page = alloc_domheap_pages(NULL, order, 0);
+    if ( tmp_page == NULL )
         return NULL;
+
+    mfn = vmap_order(page_to_mfn(tmp_page), order);
+    if ( mfn == NULL )
+    {
+        free_domheap_pages(tmp_page, order);
+        return NULL;
+    }
 
     for ( i = 0; i < pages; i++ )
     {
-        pg = alloc_domheap_page(NULL, 0);
+        struct page_info *pg = alloc_domheap_page(NULL, 0);
         if ( pg == NULL )
             goto error;
         mfn[i] = page_to_mfn(pg);
@@ -290,13 +299,16 @@ static void *vmalloc_type(size_t size, enum vmap_region type)
     if ( va == NULL )
         goto error;
 
-    xfree(mfn);
+    vunmap(mfn);
+    free_domheap_pages(tmp_page, order);
     return va;
 
  error:
+    ASSERT(mfn);
     while ( i-- )
         free_domheap_page(mfn_to_page(mfn[i]));
-    xfree(mfn);
+    vunmap(mfn);
+    free_domheap_pages(tmp_page, order);
     return NULL;
 }
 
