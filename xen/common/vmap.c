@@ -218,9 +218,34 @@ void *__vmap(const mfn_t *mfn, unsigned int granularity,
     return va;
 }
 
+static void *__vmap_order(const mfn_t mfn, unsigned int granularity,
+                          unsigned int order, unsigned int align,
+                          unsigned int flags, enum vmap_region type)
+{
+    unsigned int nr = 1UL << order;
+    void *va = vm_alloc(nr * granularity, align, type);
+    unsigned long cur = (unsigned long)va;
+
+    for ( ; va && nr--; mfn_add(mfn, 1), cur += PAGE_SIZE * granularity )
+    {
+        if ( map_pages_to_xen(cur, mfn, granularity, flags) )
+        {
+            vunmap(va);
+            va = NULL;
+        }
+    }
+
+    return va;
+}
+
 void *vmap(const mfn_t *mfn, unsigned int nr)
 {
     return __vmap(mfn, 1, nr, 1, PAGE_HYPERVISOR, VMAP_DEFAULT);
+}
+
+void *vmap_order(const mfn_t mfn, unsigned int order)
+{
+    return __vmap_order(mfn, 1, order, 1, PAGE_HYPERVISOR, VMAP_DEFAULT);
 }
 
 void vunmap(const void *va)

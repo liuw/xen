@@ -15,6 +15,7 @@ void vm_init_type(enum vmap_region type, void *start, void *end);
 void *__vmap(const mfn_t *mfn, unsigned int granularity, unsigned int nr,
              unsigned int align, unsigned int flags, enum vmap_region);
 void *vmap(const mfn_t *mfn, unsigned int nr);
+void *vmap_order(const mfn_t mfn, unsigned int order);
 void vunmap(const void *);
 
 void *vmalloc(size_t size);
