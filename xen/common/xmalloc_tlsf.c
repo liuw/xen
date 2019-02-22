@@ -526,26 +526,12 @@ static void xmalloc_pool_put(void *p)
 
 static void *xmalloc_whole_pages(unsigned long size, unsigned long align)
 {
-    unsigned int i, order;
-    void *res, *p;
+    void *res;
 
-    order = get_order_from_bytes(max(align, size));
-
-    res = alloc_xenheap_pages(order, 0);
-    if ( res == NULL )
-        return NULL;
-
-    for ( p = res + PAGE_ALIGN(size), i = 0; i < order; ++i )
-        if ( (unsigned long)p & (PAGE_SIZE << i) )
-        {
-            free_xenheap_pages(p, i);
-            p += PAGE_SIZE << i;
-        }
-
-    PFN_ORDER(virt_to_page(res)) = PFN_UP(size);
-    /* Check that there was no truncation: */
-    ASSERT(PFN_ORDER(virt_to_page(res)) == PFN_UP(size));
-
+    /* vmalloc is page aligned */
+    ASSERT(align <= PAGE_SIZE);
+    res = vmalloc(size);
+    ASSERT(!((unsigned long)res & (PAGE_SIZE - 1)));
     return res;
 }
 
@@ -602,6 +588,7 @@ void *_xmalloc(unsigned long size, unsigned long align)
     }
 
     ASSERT(((unsigned long)p & (align - 1)) == 0);
+    ASSERT((unsigned long)p & (PAGE_SIZE - 1));
     return p;
 }
 
@@ -623,20 +610,8 @@ void xfree(void *p)
 
     if ( !((unsigned long)p & (PAGE_SIZE - 1)) )
     {
-        unsigned long size = PFN_ORDER(virt_to_page(p));
-        unsigned int i, order = get_order_from_pages(size);
-
-        BUG_ON((unsigned long)p & ((PAGE_SIZE << order) - 1));
-        PFN_ORDER(virt_to_page(p)) = 0;
-        for ( i = 0; ; ++i )
-        {
-            if ( !(size & (1 << i)) )
-                continue;
-            size -= 1 << i;
-            free_xenheap_pages(p + (size << PAGE_SHIFT), i);
-            if ( i + 1 >= order )
-                return;
-        }
+        vfree(p);
+        return;
     }
 
     /* Strip alignment padding. */
