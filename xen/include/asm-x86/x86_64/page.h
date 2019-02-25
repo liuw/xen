@@ -48,6 +48,7 @@ static inline unsigned long canonicalise_addr(unsigned long addr)
 
 extern unsigned long xen_virt_end;
 
+#if 0
 /*
  * Note: These are solely for the use by page_{get,set}_owner(), and
  *       therefore don't need to handle the XEN_VIRT_{START,END} range.
@@ -60,6 +61,7 @@ extern unsigned long xen_virt_end;
                           PAGE_SHIFT)
 #define pdx_to_virt(pdx) ((void *)(DIRECTMAP_VIRT_START + \
                                    ((unsigned long)(pdx) << PAGE_SHIFT)))
+#endif
 
 unsigned long __virt_to_maddr(unsigned long va);
 void *__maddr_to_virt(unsigned long ma);
