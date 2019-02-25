@@ -187,7 +187,7 @@ struct page_info
         /* Page is in use, but not as a shadow. */
         struct {
             /* Owner of this page (zero if page is anonymous). */
-            struct domain *_domain;
+            __pdx_t _domain;
         } inuse;
 
         /* Page is in use as a shadow. */
@@ -304,8 +304,11 @@ static inline void *get_page_address(const struct page_info *page)
 /* OOS fixup entries */
 #define SHADOW_OOS_FIXUPS 2
 
-#define page_get_owner(_p)    ((_p)->v.inuse._domain)
-#define page_set_owner(_p,_d) (_p)->v.inuse._domain = (_d)
+#define page_get_owner(_p)                                              \
+    ((struct domain *)((_p)->v.inuse._domain ?                          \
+                       pdx_to_virt((_p)->v.inuse._domain) : NULL))
+#define page_set_owner(_p,_d)                                           \
+    ((_p)->v.inuse._domain = (_d) ? virt_to_pdx(_d) : 0)
 
 #define maddr_get_owner(ma)   (page_get_owner(maddr_to_page((ma))))
 
