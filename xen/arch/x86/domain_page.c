@@ -181,7 +181,8 @@ void unmap_domain_page(const void *ptr)
     unsigned long va = (unsigned long)ptr, mfn, flags;
     struct vcpu_maphash_entry *hashent;
 
-    if ( va >= DIRECTMAP_VIRT_START )
+    if ( va >= DIRECTMAP_VIRT_START ||
+	 (va >= VMAP_VIRT_START && va < VMAP_VIRT_END) )
         return;
 
     ASSERT(va >= MAPCACHE_VIRT_START && va < MAPCACHE_VIRT_END);
