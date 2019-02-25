@@ -48,19 +48,6 @@ static inline unsigned long canonicalise_addr(unsigned long addr)
 
 extern unsigned long xen_virt_end;
 
-/*
- * Note: These are solely for the use by page_{get,set}_owner(), and
- *       therefore don't need to handle the XEN_VIRT_{START,END} range.
- *
- *   XXX liuw: these need fixing, because going from a vmap area
- *        pointer to pdx is not right. We may have to end up storing
- *        the pointer directly?
- */
-#define virt_to_pdx(va)  (((unsigned long)(va) - DIRECTMAP_VIRT_START) >> \
-                          PAGE_SHIFT)
-#define pdx_to_virt(pdx) ((void *)(DIRECTMAP_VIRT_START + \
-                                   ((unsigned long)(pdx) << PAGE_SHIFT)))
-
 unsigned long __virt_to_maddr(unsigned long va);
 void *__maddr_to_virt(unsigned long ma);
 

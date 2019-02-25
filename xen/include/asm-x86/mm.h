@@ -277,6 +277,34 @@ struct page_info
     void *linear;
 };
 
+/*
+ * Note: These are solely for the use by page_{get,set}_owner(), and
+ *       therefore don't need to handle the XEN_VIRT_{START,END} range.
+ *
+ *   XXX liuw: these need fixing, because going from a vmap area
+ *        pointer to pdx is not right. We may have to end up storing
+ *        the pointer directly?
+ */
+#if 0
+#define virt_to_pdx(va)  (((unsigned long)(va) - VMAP_VIRT_START) >> \
+                          PAGE_SHIFT)
+#define pdx_to_virt(pdx) ((void *)(VMAP_VIRT_START + \
+                                   ((unsigned long)(pdx) << PAGE_SHIFT)))
+#endif
+
+static inline __pdx_t virt_to_pdx(void *va)
+{
+    unsigned long ret = ((unsigned long)(va) - VMAP_VIRT_START) >> PAGE_SHIFT;
+    /* Make sure there is no truncation */
+    ASSERT(ret == (__pdx_t)ret);
+    return (__pdx_t)ret;
+}
+
+static inline void *pdx_to_virt(__pdx_t pdx)
+{
+    return (void *)(VMAP_VIRT_START + ((unsigned long)pdx << PAGE_SHIFT));
+}
+
 #undef __pdx_t
 
 static inline void set_page_address(struct page_info *page, void *linear)
