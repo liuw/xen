@@ -51,6 +51,10 @@ extern unsigned long xen_virt_end;
 /*
  * Note: These are solely for the use by page_{get,set}_owner(), and
  *       therefore don't need to handle the XEN_VIRT_{START,END} range.
+ *
+ *   XXX liuw: these need fixing, because going from a vmap area
+ *        pointer to pdx is not right. We may have to end up storing
+ *        the pointer directly?
  */
 #define virt_to_pdx(va)  (((unsigned long)(va) - DIRECTMAP_VIRT_START) >> \
                           PAGE_SHIFT)
