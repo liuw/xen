@@ -679,7 +679,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
 
     /*
      * Sanity check 'linear'.  We only allow cloning from the Xen virtual
-     * range, and in particular, only from the directmap and .text ranges.
+     * range, and in particular, only from vmap, directmap and .text ranges.
      */
     if ( root_table_offset(linear) > ROOT_PAGETABLE_LAST_XEN_SLOT ||
          root_table_offset(linear) < ROOT_PAGETABLE_FIRST_XEN_SLOT )
@@ -688,7 +688,8 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
         goto out;
     }
 
-    if ( linear < XEN_VIRT_START ||
+    if ( linear < VMAP_VIRT_START ||
+         (linear >= VMAP_VIRT_END && linear < XEN_VIRT_START) ||
          (linear >= XEN_VIRT_END && linear < DIRECTMAP_VIRT_START) )
     {
         rc = -EINVAL;
