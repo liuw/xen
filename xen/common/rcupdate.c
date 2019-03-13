@@ -533,6 +533,9 @@ static void rcu_move_batch(struct rcu_data *this_rdp, struct rcu_head *list,
 static void rcu_offline_cpu(struct rcu_data *this_rdp,
                             struct rcu_ctrlblk *rcp, struct rcu_data *rdp)
 {
+    printk("  XXX offline this cpu %d cpu %d %p timer function %p\n",
+	   this_rdp->cpu,
+           rdp->cpu, &rdp->idle_timer, rdp->idle_timer.function);
     kill_timer(&rdp->idle_timer);
 
     /* If the cpu going offline owns the grace period we can block
@@ -564,6 +567,8 @@ static void rcu_init_percpu_data(int cpu, struct rcu_ctrlblk *rcp,
     rdp->cpu = cpu;
     rdp->blimit = blimit;
     init_timer(&rdp->idle_timer, rcu_idle_timer_handler, rdp, cpu);
+    printk("  XXX init cpu %d %p timer cpu %d\n", rdp->cpu, &rdp->idle_timer,
+	    rdp->idle_timer.cpu);
 }
 
 static int cpu_callback(
@@ -572,6 +577,8 @@ static int cpu_callback(
     unsigned int cpu = (unsigned long)hcpu;
     struct rcu_data *rdp = &per_cpu(rcu_data, cpu);
 
+    printk("   AAA action %lx\n", action);
+
     switch ( action )
     {
     case CPU_UP_PREPARE:
@@ -579,6 +586,7 @@ static int cpu_callback(
         break;
     case CPU_UP_CANCELED:
     case CPU_DEAD:
+	    printk("   YYYY %d\n", cpu);
         rcu_offline_cpu(&this_cpu(rcu_data), &rcu_ctrlblk, rdp);
         break;
     default:

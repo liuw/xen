@@ -275,6 +275,9 @@ static inline void timer_unlock(struct timer *timer)
 
 static bool_t active_timer(struct timer *timer)
 {
+    if ( timer->status < TIMER_STATUS_inactive ||
+         timer->status > TIMER_STATUS_in_list )
+        printk("  XXXX %p %p %d\n", timer, virt_to_page(timer), timer->status);
     ASSERT(timer->status >= TIMER_STATUS_inactive);
     ASSERT(timer->status <= TIMER_STATUS_in_list);
     return (timer->status >= TIMER_STATUS_in_heap);
@@ -293,6 +296,8 @@ void init_timer(
     timer->data = data;
     write_atomic(&timer->cpu, cpu);
     timer->status = TIMER_STATUS_inactive;
+    printk("  XXX cpu %d timer %p %p status %d\n", cpu, timer,
+           virt_to_page(timer), timer->status);
     if ( !timer_lock_irqsave(timer, flags) )
         BUG();
     list_add(&timer->inactive, &per_cpu(timers, cpu).inactive);

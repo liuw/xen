@@ -171,6 +171,9 @@ static void synchronize_tsc_slave(unsigned int slave)
     }
 }
 
+#undef Dprintk
+#define Dprintk printk
+
 static void smp_callin(void)
 {
     unsigned int cpu = smp_processor_id();
@@ -320,13 +323,21 @@ void start_secondary(void *unused)
      */
     unsigned int cpu = booting_cpu;
 
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
     /* Critical region without IDT or TSS.  Any fault is deadly! */
 
+    printk("    XXX cpuinfo %p\n", get_cpu_info());
+
     set_processor_id(cpu);
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
     set_current(idle_vcpu[cpu]);
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
     this_cpu(curr_vcpu) = idle_vcpu[cpu];
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
     rdmsrl(MSR_EFER, this_cpu(efer));
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
     init_shadow_spec_ctrl_state();
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     /*
      * Just as during early bootstrap, it is convenient here to disable
@@ -345,12 +356,16 @@ void start_secondary(void *unused)
      * visible in cpu_online_map. Hence such a deadlock is not possible.
      */
     spin_debug_disable();
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     get_cpu_info()->use_pv_cr3 = false;
     get_cpu_info()->xen_cr3 = 0;
     get_cpu_info()->pv_cr3 = 0;
 
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
+
     load_system_tables();
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     /* Full exception support from here on in. */
 
@@ -692,13 +707,18 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
          (linear >= VMAP_VIRT_END && linear < XEN_VIRT_START) ||
          (linear >= XEN_VIRT_END && linear < DIRECTMAP_VIRT_START) )
     {
+        printk("   DDD %s %d\n", __FILE__, __LINE__);
         rc = -EINVAL;
         goto out;
     }
 
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
+
     pl3e = map_xen_pagetable(
         l4e_get_mfn(idle_pg_table[root_table_offset(linear)]));
     pl3e += l3_table_offset(linear);
+
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     flags = l3e_get_flags(*pl3e);
     ASSERT(flags & _PAGE_PRESENT);
@@ -737,6 +757,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     UNMAP_XEN_PAGETABLE(pl1e);
     UNMAP_XEN_PAGETABLE(pl2e);
     UNMAP_XEN_PAGETABLE(pl3e);
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     if ( !(root_get_flags(rpt[root_table_offset(linear)]) & _PAGE_PRESENT) )
     {
@@ -778,6 +799,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
         ASSERT(!(l3e_get_flags(*pl3e) & _PAGE_PSE));
         pl2e = map_xen_pagetable(l3e_get_mfn(*pl3e));
     }
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     pl2e += l2_table_offset(linear);
 
@@ -811,6 +833,7 @@ static int clone_mapping(const void *ptr, root_pgentry_t *rpt)
     }
     else
         l1e_write(pl1e, l1e_from_pfn(pfn, flags));
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     rc = 0;
  out:
@@ -875,7 +898,11 @@ static int setup_cpu_root_pgt(unsigned int cpu)
     /* Install direct map page table entries for stack, IDT, and TSS. */
     for ( off = rc = 0; !rc && off < STACK_SIZE; off += PAGE_SIZE )
         if ( !memguard_is_stack_guard_page(off) )
+        {
+            printk("   PPP cloning cpu %u stack %p\n",
+                   cpu, __va(__pa(stack_base[cpu])));
             rc = clone_mapping(__va(__pa(stack_base[cpu])) + off, rpt);
+        }
 
     if ( !rc )
         rc = clone_mapping(idt_tables[cpu], rpt);
@@ -1091,7 +1118,9 @@ static int cpu_smpboot_alloc(unsigned int cpu)
 
     rc = setup_cpu_root_pgt(cpu);
     if ( rc )
+    {
         goto out;
+    }
     rc = -ENOMEM;
 
     if ( secondary_socket_cpumask == NULL &&
@@ -1109,6 +1138,7 @@ static int cpu_smpboot_alloc(unsigned int cpu)
     if ( rc )
         cpu_smpboot_free(cpu, true);
 
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
     return rc;
 }
 
@@ -1121,6 +1151,7 @@ static int cpu_smpboot_callback(
     switch ( action )
     {
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         rc = cpu_smpboot_alloc(cpu);
         break;
     case CPU_UP_CANCELED:
@@ -1391,11 +1422,14 @@ int __cpu_up(unsigned int cpu)
 
     if ( (apicid = x86_cpu_to_apicid[cpu]) == BAD_APICID )
         return -ENODEV;
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     if ( (ret = do_boot_cpu(apicid, cpu)) != 0 )
         return ret;
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     time_latch_stamps();
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     set_cpu_state(CPU_STATE_ONLINE);
     while ( !cpu_online(cpu) )
@@ -1403,6 +1437,7 @@ int __cpu_up(unsigned int cpu)
         cpu_relax();
         process_pending_softirqs();
     }
+        printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     return 0;
 }

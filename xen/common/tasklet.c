@@ -224,6 +224,7 @@ static int cpu_callback(
     switch ( action )
     {
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         INIT_LIST_HEAD(&per_cpu(tasklet_list, cpu));
         INIT_LIST_HEAD(&per_cpu(softirq_tasklet_list, cpu));
         break;

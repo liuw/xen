@@ -424,6 +424,7 @@ static int cpu_nmi_callback(
     switch ( action )
     {
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         init_timer(&per_cpu(nmi_timer, cpu), nmi_timer_fn, NULL, cpu);
         set_timer(&per_cpu(nmi_timer, cpu), NOW());
         break;

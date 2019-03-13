@@ -1613,7 +1613,14 @@ unsigned long __virt_to_maddr(unsigned long va)
 
 void *__maddr_to_virt(unsigned long ma)
 {
-    /* XXX ??? */
+    /* XXX how can this be fixed ??? Given a valid ma, it could have
+     * two mappings: one from vmap, the other from direct map.
+     *
+     * We can try to distinguish them with system state? If the fametable
+     * has been set up, it should be safe to prefer page->virtual?
+     *
+     * Maybe I should go through this function's users to see what I can do?
+     */
     if ( pfn_to_pdx(ma >> PAGE_SHIFT) < (DIRECTMAP_SIZE >> PAGE_SHIFT) )
         return (void *)(DIRECTMAP_VIRT_START +
                         ((ma & ma_va_bottom_mask) |

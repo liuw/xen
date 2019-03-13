@@ -1744,6 +1744,7 @@ static int cpu_schedule_callback(
         SCHED_OP(sched, init_pdata, sd->sched_priv, cpu);
         break;
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         rc = cpu_schedule_up(cpu);
         break;
     case CPU_DEAD:

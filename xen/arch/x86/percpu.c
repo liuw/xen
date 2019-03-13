@@ -51,6 +51,7 @@ static void _free_percpu_area(struct rcu_head *head)
     unsigned int cpu = info->cpu;
     char *p = __per_cpu_start + __per_cpu_offset[cpu];
 
+    printk("  XXX freeing %d per-cpu area\n", cpu);
     free_xenheap_pages(p, PERCPU_ORDER);
     __per_cpu_offset[cpu] = INVALID_PERCPU_AREA;
 }
@@ -72,6 +73,7 @@ static int cpu_percpu_callback(
     switch ( action )
     {
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         rc = init_percpu_area(cpu);
         break;
     case CPU_UP_CANCELED:

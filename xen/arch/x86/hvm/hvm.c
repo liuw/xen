@@ -121,6 +121,7 @@ static int cpu_callback(
     switch ( action )
     {
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         rc = hvm_funcs.cpu_up_prepare(cpu);
         break;
     case CPU_DYING:

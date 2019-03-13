@@ -195,6 +195,7 @@ static int update_clusterinfo(
 
     switch (action) {
     case CPU_UP_PREPARE:
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         per_cpu(cpu_2_logical_apicid, cpu) = BAD_APICID;
         if ( !cluster_cpus_spare )
             cluster_cpus_spare = xzalloc(cpumask_t);

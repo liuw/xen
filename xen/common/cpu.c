@@ -144,12 +144,18 @@ int cpu_up(unsigned int cpu)
     if ( notifier_rc != NOTIFY_DONE )
     {
         err = notifier_to_errno(notifier_rc);
+	printk("   BBB %d\n", err);
         goto fail;
     }
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     err = __cpu_up(cpu);
     if ( err < 0 )
+    {
+        printk("   CCC %d\n", err);
         goto fail;
+    }
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
     notifier_rc = notifier_call_chain(&cpu_chain, CPU_ONLINE, hcpu, NULL);
     BUG_ON(notifier_rc != NOTIFY_DONE);

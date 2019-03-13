@@ -762,19 +762,23 @@ void load_system_tables(void)
 
 		.bitmap = IOBMP_INVALID_OFFSET,
 	};
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
 	_set_tssldt_desc(
 		gdt + TSS_ENTRY,
 		(unsigned long)tss,
 		offsetof(struct tss_struct, __cacheline_filler) - 1,
 		SYS_DESC_tss_avail);
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 	_set_tssldt_desc(
 		compat_gdt + TSS_ENTRY,
 		(unsigned long)tss,
 		offsetof(struct tss_struct, __cacheline_filler) - 1,
 		SYS_DESC_tss_busy);
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 
 	lgdt(&gdtr);
+    printk("   DDD %s %d\n", __FILE__, __LINE__);
 	lidt(&idtr);
 	ltr(TSS_ENTRY << 3);
 	lldt(0);

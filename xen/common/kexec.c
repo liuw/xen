@@ -542,6 +542,7 @@ static int cpu_callback(
          * manner of problems elsewhere very soon, and if it is during runtime,
          * then failing to allocate crash notes is not a good enough reason to
          * fail the CPU_UP_PREPARE */
+	    printk("   UUU %s %d\n", __FILE__, __LINE__);
         kexec_init_cpu_notes(cpu);
         break;
     default:
