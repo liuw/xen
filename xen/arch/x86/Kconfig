@@ -164,10 +164,17 @@ endchoice
 config GUEST
 	bool
 
-config XEN_GUEST
-	def_bool n
+config HYPERV_GUEST
+	bool "Hyper-V Guest"
 	select GUEST
-	prompt "Xen Guest"
+	---help---
+	  Support for Xen detecting when it is running under Hyper-V.
+
+	  If unsure, say N.
+
+config XEN_GUEST
+	bool "Xen Guest"
+	select GUEST
 	---help---
 	  Support for Xen detecting when it is running under Xen.
 

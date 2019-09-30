@@ -1,7 +1,7 @@
 /******************************************************************************
- * arch/x86/guest/hypervisor.c
+ * arch/x86/guest/hyperv/hyperv.c
  *
- * Support for detecting and running under a hypervisor.
+ * Support for detecting and running under Hyper-V.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,55 +18,29 @@
  *
  * Copyright (c) 2019 Microsoft.
  */
-
 #include <xen/init.h>
-#include <xen/types.h>
 
-#include <asm/cache.h>
 #include <asm/guest.h>
 
-static const struct hypervisor_ops __read_mostly *hops;
+static const struct hypervisor_ops hyperv_ops = {
+    .name = "Hyper-V",
+};
 
-const struct hypervisor_ops *hypervisor_probe(void)
+const struct hypervisor_ops * __init hyperv_probe(void)
 {
-    if ( hops )
-        goto out;
+    uint32_t eax, ebx, ecx, edx;
 
-    if ( !cpu_has_hypervisor )
-        goto out;
+    cpuid(0x40000000, &eax, &ebx, &ecx, &edx);
+    if ( !((ebx == 0x7263694d) &&  /* "Micr" */
+           (ecx == 0x666f736f) &&  /* "osof" */
+           (edx == 0x76482074)) )  /* "t Hv" */
+        return NULL;
 
-    hops = xen_probe();
-    if ( hops )
-        goto out;
+    cpuid(0x40000001, &eax, &ebx, &ecx, &edx);
+    if ( eax != 0x31237648 )    /* Hv#1 */
+        return NULL;
 
-    /*
-     * Detection of Hyper-V must come after Xen to avoid false positive due
-     * to viridian support
-     */
-    hops = hyperv_probe();
-    if ( hops )
-        goto out;
-
- out:
-    return hops;
-}
-
-void __init hypervisor_setup(void)
-{
-    if ( hops && hops->setup )
-        hops->setup();
-}
-
-void hypervisor_ap_setup(void)
-{
-    if ( hops && hops->ap_setup )
-        hops->ap_setup();
-}
-
-void hypervisor_resume(void)
-{
-    if ( hops && hops->resume )
-        hops->resume();
+    return &hyperv_ops;
 }
 
 /*
