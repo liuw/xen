@@ -19,16 +19,46 @@
  * Copyright (c) 2019 Microsoft.
  */
 
+#include <xen/init.h>
 #include <xen/types.h>
 
 #include <asm/cache.h>
-#include <asm/guest/hypervisor.h>
+#include <asm/guest.h>
 
 static const struct hypervisor_ops __read_mostly *hops;
 
 const struct hypervisor_ops *hypervisor_probe(void)
 {
+    if ( hops )
+        goto out;
+
+    if ( !cpu_has_hypervisor )
+        goto out;
+
+    hops = xen_probe();
+    if ( hops )
+        goto out;
+
+ out:
     return hops;
+}
+
+void __init hypervisor_setup(void)
+{
+    if ( hops && hops->setup )
+        hops->setup();
+}
+
+void hypervisor_ap_setup(void)
+{
+    if ( hops && hops->ap_setup )
+        hops->ap_setup();
+}
+
+void hypervisor_resume(void)
+{
+    if ( hops && hops->resume )
+        hops->resume();
 }
 
 /*
