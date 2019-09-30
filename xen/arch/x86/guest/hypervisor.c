@@ -43,6 +43,18 @@ bool hypervisor_probe(void)
     }
 #endif
 
+    /*
+     * Detection of Hyper-V must come after Xen to avoid false positive due
+     * to viridian support
+     */
+#ifdef CONFIG_HYPERV_GUEST
+    if ( hyperv_probe() )
+    {
+        hops = &hyperv_ops;
+        return true;
+    }
+#endif
+
     return false;
 }
 
