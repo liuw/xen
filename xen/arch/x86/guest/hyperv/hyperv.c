@@ -24,6 +24,7 @@
 #include <asm/guest/hyperv-tlfs.h>
 
 struct ms_hyperv_info ms_hyperv;
+bool hyperv_guest;
 
 bool __init hyperv_probe(void)
 {
@@ -49,6 +50,8 @@ bool __init hyperv_probe(void)
 
     ms_hyperv.max_vp_index = cpuid_eax(HYPERV_CPUID_IMPLEMENT_LIMITS);
     ms_hyperv.max_lp_index = cpuid_ebx(HYPERV_CPUID_IMPLEMENT_LIMITS);
+
+    hyperv_guest = true;
 
     return true;
 }

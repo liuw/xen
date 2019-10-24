@@ -35,6 +35,8 @@ struct ms_hyperv_info {
 };
 extern struct ms_hyperv_info ms_hyperv;
 
+extern bool hyperv_guest;
+
 extern struct hypervisor_ops hyperv_ops;
 
 bool hyperv_probe(void);
