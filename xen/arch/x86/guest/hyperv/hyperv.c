@@ -21,6 +21,9 @@
 #include <xen/init.h>
 
 #include <asm/guest.h>
+#include <asm/guest/hyperv-tlfs.h>
+
+struct ms_hyperv_info ms_hyperv;
 
 bool __init hyperv_probe(void)
 {
@@ -35,6 +38,17 @@ bool __init hyperv_probe(void)
     cpuid(0x40000001, &eax, &ebx, &ecx, &edx);
     if ( eax != 0x31237648 )    /* Hv#1 */
         return false;
+
+    /* Extract more information from Hyper-V */
+    ms_hyperv.features = cpuid_eax(HYPERV_CPUID_FEATURES);
+    ms_hyperv.misc_features = cpuid_edx(HYPERV_CPUID_FEATURES);
+    ms_hyperv.hints = cpuid_eax(HYPERV_CPUID_ENLIGHTMENT_INFO);
+
+    if ( ms_hyperv.hints & HV_X64_ENLIGHTENED_VMCS_RECOMMENDED )
+        ms_hyperv.nested_features = cpuid_eax(HYPERV_CPUID_NESTED_FEATURES);
+
+    ms_hyperv.max_vp_index = cpuid_eax(HYPERV_CPUID_IMPLEMENT_LIMITS);
+    ms_hyperv.max_lp_index = cpuid_ebx(HYPERV_CPUID_IMPLEMENT_LIMITS);
 
     return true;
 }
