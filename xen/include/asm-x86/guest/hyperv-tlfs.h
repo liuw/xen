@@ -9,7 +9,8 @@
 #ifndef _ASM_X86_HYPERV_TLFS_H
 #define _ASM_X86_HYPERV_TLFS_H
 
-#include <linux/types.h>
+#include <xen/bitops.h>
+#include <xen/types.h>
 #include <asm/page.h>
 
 /*
@@ -19,7 +20,7 @@
  * size may not be 4096 on all architectures.
  */
 #define HV_HYP_PAGE_SHIFT      12
-#define HV_HYP_PAGE_SIZE       BIT(HV_HYP_PAGE_SHIFT)
+#define HV_HYP_PAGE_SIZE       BIT(HV_HYP_PAGE_SHIFT, UL)
 #define HV_HYP_PAGE_MASK       (~(HV_HYP_PAGE_SIZE - 1))
 
 /*
@@ -45,47 +46,47 @@
  */
 
 /* VP Runtime (HV_X64_MSR_VP_RUNTIME) available */
-#define HV_X64_MSR_VP_RUNTIME_AVAILABLE		BIT(0)
+#define HV_X64_MSR_VP_RUNTIME_AVAILABLE		BIT(0, UL)
 /* Partition Reference Counter (HV_X64_MSR_TIME_REF_COUNT) available*/
-#define HV_MSR_TIME_REF_COUNT_AVAILABLE		BIT(1)
+#define HV_MSR_TIME_REF_COUNT_AVAILABLE		BIT(1, UL)
 /*
  * Basic SynIC MSRs (HV_X64_MSR_SCONTROL through HV_X64_MSR_EOM
  * and HV_X64_MSR_SINT0 through HV_X64_MSR_SINT15) available
  */
-#define HV_X64_MSR_SYNIC_AVAILABLE		BIT(2)
+#define HV_X64_MSR_SYNIC_AVAILABLE		BIT(2, UL)
 /*
  * Synthetic Timer MSRs (HV_X64_MSR_STIMER0_CONFIG through
  * HV_X64_MSR_STIMER3_COUNT) available
  */
-#define HV_MSR_SYNTIMER_AVAILABLE		BIT(3)
+#define HV_MSR_SYNTIMER_AVAILABLE		BIT(3, UL)
 /*
  * APIC access MSRs (HV_X64_MSR_EOI, HV_X64_MSR_ICR and HV_X64_MSR_TPR)
  * are available
  */
-#define HV_X64_MSR_APIC_ACCESS_AVAILABLE	BIT(4)
+#define HV_X64_MSR_APIC_ACCESS_AVAILABLE	BIT(4, UL)
 /* Hypercall MSRs (HV_X64_MSR_GUEST_OS_ID and HV_X64_MSR_HYPERCALL) available*/
-#define HV_X64_MSR_HYPERCALL_AVAILABLE		BIT(5)
+#define HV_X64_MSR_HYPERCALL_AVAILABLE		BIT(5, UL)
 /* Access virtual processor index MSR (HV_X64_MSR_VP_INDEX) available*/
-#define HV_X64_MSR_VP_INDEX_AVAILABLE		BIT(6)
+#define HV_X64_MSR_VP_INDEX_AVAILABLE		BIT(6, UL)
 /* Virtual system reset MSR (HV_X64_MSR_RESET) is available*/
-#define HV_X64_MSR_RESET_AVAILABLE		BIT(7)
+#define HV_X64_MSR_RESET_AVAILABLE		BIT(7, UL)
 /*
  * Access statistics pages MSRs (HV_X64_MSR_STATS_PARTITION_RETAIL_PAGE,
  * HV_X64_MSR_STATS_PARTITION_INTERNAL_PAGE, HV_X64_MSR_STATS_VP_RETAIL_PAGE,
  * HV_X64_MSR_STATS_VP_INTERNAL_PAGE) available
  */
-#define HV_X64_MSR_STAT_PAGES_AVAILABLE		BIT(8)
+#define HV_X64_MSR_STAT_PAGES_AVAILABLE		BIT(8, UL)
 /* Partition reference TSC MSR is available */
-#define HV_MSR_REFERENCE_TSC_AVAILABLE		BIT(9)
+#define HV_MSR_REFERENCE_TSC_AVAILABLE		BIT(9, UL)
 /* Partition Guest IDLE MSR is available */
-#define HV_X64_MSR_GUEST_IDLE_AVAILABLE		BIT(10)
+#define HV_X64_MSR_GUEST_IDLE_AVAILABLE		BIT(10, UL)
 /*
  * There is a single feature flag that signifies if the partition has access
  * to MSRs with local APIC and TSC frequencies.
  */
-#define HV_X64_ACCESS_FREQUENCY_MSRS		BIT(11)
+#define HV_X64_ACCESS_FREQUENCY_MSRS		BIT(11, UL)
 /* AccessReenlightenmentControls privilege */
-#define HV_X64_ACCESS_REENLIGHTENMENT		BIT(13)
+#define HV_X64_ACCESS_REENLIGHTENMENT		BIT(13, UL)
 
 /*
  * Feature identification: indicates which flags were specified at partition
@@ -93,17 +94,17 @@
  * defined in section Partition Creation Flags.
  * These are HYPERV_CPUID_FEATURES.EBX bits.
  */
-#define HV_X64_CREATE_PARTITIONS		BIT(0)
-#define HV_X64_ACCESS_PARTITION_ID		BIT(1)
-#define HV_X64_ACCESS_MEMORY_POOL		BIT(2)
-#define HV_X64_ADJUST_MESSAGE_BUFFERS		BIT(3)
-#define HV_X64_POST_MESSAGES			BIT(4)
-#define HV_X64_SIGNAL_EVENTS			BIT(5)
-#define HV_X64_CREATE_PORT			BIT(6)
-#define HV_X64_CONNECT_PORT			BIT(7)
-#define HV_X64_ACCESS_STATS			BIT(8)
-#define HV_X64_DEBUGGING			BIT(11)
-#define HV_X64_CPU_POWER_MANAGEMENT		BIT(12)
+#define HV_X64_CREATE_PARTITIONS		BIT(0, UL)
+#define HV_X64_ACCESS_PARTITION_ID		BIT(1, UL)
+#define HV_X64_ACCESS_MEMORY_POOL		BIT(2, UL)
+#define HV_X64_ADJUST_MESSAGE_BUFFERS		BIT(3, UL)
+#define HV_X64_POST_MESSAGES			BIT(4, UL)
+#define HV_X64_SIGNAL_EVENTS			BIT(5, UL)
+#define HV_X64_CREATE_PORT			BIT(6, UL)
+#define HV_X64_CONNECT_PORT			BIT(7, UL)
+#define HV_X64_ACCESS_STATS			BIT(8, UL)
+#define HV_X64_DEBUGGING			BIT(11, UL)
+#define HV_X64_CPU_POWER_MANAGEMENT		BIT(12, UL)
 
 /*
  * Feature identification. EDX indicates which miscellaneous features
@@ -111,26 +112,26 @@
  * These are HYPERV_CPUID_FEATURES.EDX bits.
  */
 /* The MWAIT instruction is available (per section MONITOR / MWAIT) */
-#define HV_X64_MWAIT_AVAILABLE				BIT(0)
+#define HV_X64_MWAIT_AVAILABLE				BIT(0, UL)
 /* Guest debugging support is available */
-#define HV_X64_GUEST_DEBUGGING_AVAILABLE		BIT(1)
+#define HV_X64_GUEST_DEBUGGING_AVAILABLE		BIT(1, UL)
 /* Performance Monitor support is available*/
-#define HV_X64_PERF_MONITOR_AVAILABLE			BIT(2)
+#define HV_X64_PERF_MONITOR_AVAILABLE			BIT(2, UL)
 /* Support for physical CPU dynamic partitioning events is available*/
-#define HV_X64_CPU_DYNAMIC_PARTITIONING_AVAILABLE	BIT(3)
+#define HV_X64_CPU_DYNAMIC_PARTITIONING_AVAILABLE	BIT(3, UL)
 /*
  * Support for passing hypercall input parameter block via XMM
  * registers is available
  */
-#define HV_X64_HYPERCALL_PARAMS_XMM_AVAILABLE		BIT(4)
+#define HV_X64_HYPERCALL_PARAMS_XMM_AVAILABLE		BIT(4, UL)
 /* Support for a virtual guest idle state is available */
-#define HV_X64_GUEST_IDLE_STATE_AVAILABLE		BIT(5)
+#define HV_X64_GUEST_IDLE_STATE_AVAILABLE		BIT(5, UL)
 /* Frequency MSRs available */
-#define HV_FEATURE_FREQUENCY_MSRS_AVAILABLE		BIT(8)
+#define HV_FEATURE_FREQUENCY_MSRS_AVAILABLE		BIT(8, UL)
 /* Crash MSR available */
-#define HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE		BIT(10)
+#define HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE		BIT(10, UL)
 /* stimer Direct Mode is available */
-#define HV_STIMER_DIRECT_MODE_AVAILABLE			BIT(19)
+#define HV_STIMER_DIRECT_MODE_AVAILABLE			BIT(19, UL)
 
 /*
  * Implementation recommendations. Indicates which behaviors the hypervisor
@@ -141,56 +142,56 @@
  * Recommend using hypercall for address space switches rather
  * than MOV to CR3 instruction
  */
-#define HV_X64_AS_SWITCH_RECOMMENDED			BIT(0)
+#define HV_X64_AS_SWITCH_RECOMMENDED			BIT(0, UL)
 /* Recommend using hypercall for local TLB flushes rather
  * than INVLPG or MOV to CR3 instructions */
-#define HV_X64_LOCAL_TLB_FLUSH_RECOMMENDED		BIT(1)
+#define HV_X64_LOCAL_TLB_FLUSH_RECOMMENDED		BIT(1, UL)
 /*
  * Recommend using hypercall for remote TLB flushes rather
  * than inter-processor interrupts
  */
-#define HV_X64_REMOTE_TLB_FLUSH_RECOMMENDED		BIT(2)
+#define HV_X64_REMOTE_TLB_FLUSH_RECOMMENDED		BIT(2, UL)
 /*
  * Recommend using MSRs for accessing APIC registers
  * EOI, ICR and TPR rather than their memory-mapped counterparts
  */
-#define HV_X64_APIC_ACCESS_RECOMMENDED			BIT(3)
+#define HV_X64_APIC_ACCESS_RECOMMENDED			BIT(3, UL)
 /* Recommend using the hypervisor-provided MSR to initiate a system RESET */
-#define HV_X64_SYSTEM_RESET_RECOMMENDED			BIT(4)
+#define HV_X64_SYSTEM_RESET_RECOMMENDED			BIT(4, UL)
 /*
  * Recommend using relaxed timing for this partition. If used,
  * the VM should disable any watchdog timeouts that rely on the
  * timely delivery of external interrupts
  */
-#define HV_X64_RELAXED_TIMING_RECOMMENDED		BIT(5)
+#define HV_X64_RELAXED_TIMING_RECOMMENDED		BIT(5, UL)
 
 /*
  * Recommend not using Auto End-Of-Interrupt feature
  */
-#define HV_DEPRECATING_AEOI_RECOMMENDED			BIT(9)
+#define HV_DEPRECATING_AEOI_RECOMMENDED			BIT(9, UL)
 
 /*
  * Recommend using cluster IPI hypercalls.
  */
-#define HV_X64_CLUSTER_IPI_RECOMMENDED			BIT(10)
+#define HV_X64_CLUSTER_IPI_RECOMMENDED			BIT(10, UL)
 
 /* Recommend using the newer ExProcessorMasks interface */
-#define HV_X64_EX_PROCESSOR_MASKS_RECOMMENDED		BIT(11)
+#define HV_X64_EX_PROCESSOR_MASKS_RECOMMENDED		BIT(11, UL)
 
 /* Recommend using enlightened VMCS */
-#define HV_X64_ENLIGHTENED_VMCS_RECOMMENDED		BIT(14)
+#define HV_X64_ENLIGHTENED_VMCS_RECOMMENDED		BIT(14, UL)
 
 /*
  * Virtual processor will never share a physical core with another virtual
  * processor, except for virtual processors that are reported as sibling SMT
  * threads.
  */
-#define HV_X64_NO_NONARCH_CORESHARING                  BIT(18)
+#define HV_X64_NO_NONARCH_CORESHARING                  BIT(18, UL)
 
 /* Nested features. These are HYPERV_CPUID_NESTED_FEATURES.EAX bits. */
-#define HV_X64_NESTED_DIRECT_FLUSH			BIT(17)
-#define HV_X64_NESTED_GUEST_MAPPING_FLUSH		BIT(18)
-#define HV_X64_NESTED_MSR_BITMAP			BIT(19)
+#define HV_X64_NESTED_DIRECT_FLUSH			BIT(17, UL)
+#define HV_X64_NESTED_GUEST_MAPPING_FLUSH		BIT(18, UL)
+#define HV_X64_NESTED_MSR_BITMAP			BIT(19, UL)
 
 /* Hyper-V specific model specific registers (MSRs) */
 
@@ -390,10 +391,10 @@ struct hv_tsc_emulation_status {
 #define HV_PROCESSOR_POWER_STATE_C2		2
 #define HV_PROCESSOR_POWER_STATE_C3		3
 
-#define HV_FLUSH_ALL_PROCESSORS			BIT(0)
-#define HV_FLUSH_ALL_VIRTUAL_ADDRESS_SPACES	BIT(1)
-#define HV_FLUSH_NON_GLOBAL_MAPPINGS_ONLY	BIT(2)
-#define HV_FLUSH_USE_EXTENDED_RANGE_FORMAT	BIT(3)
+#define HV_FLUSH_ALL_PROCESSORS			BIT(0, UL)
+#define HV_FLUSH_ALL_VIRTUAL_ADDRESS_SPACES	BIT(1, UL)
+#define HV_FLUSH_NON_GLOBAL_MAPPINGS_ONLY	BIT(2, UL)
+#define HV_FLUSH_USE_EXTENDED_RANGE_FORMAT	BIT(3, UL)
 
 enum HV_GENERIC_SET_FORMAT {
 	HV_GENERIC_SET_SPARSE_4K,
@@ -401,7 +402,7 @@ enum HV_GENERIC_SET_FORMAT {
 };
 
 #define HV_HYPERCALL_RESULT_MASK	GENMASK_ULL(15, 0)
-#define HV_HYPERCALL_FAST_BIT		BIT(16)
+#define HV_HYPERCALL_FAST_BIT		BIT(16, UL)
 #define HV_HYPERCALL_VARHEAD_OFFSET	17
 #define HV_HYPERCALL_REP_COMP_OFFSET	32
 #define HV_HYPERCALL_REP_COMP_MASK	GENMASK_ULL(43, 32)
@@ -740,22 +741,22 @@ struct hv_enlightened_vmcs {
 } __packed;
 
 #define HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE			0
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_IO_BITMAP		BIT(0)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_MSR_BITMAP		BIT(1)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2		BIT(2)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1		BIT(3)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_PROC		BIT(4)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EVENT		BIT(5)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_ENTRY		BIT(6)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EXCPN		BIT(7)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CRDR			BIT(8)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_XLAT		BIT(9)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_BASIC		BIT(10)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1		BIT(11)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2		BIT(12)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER		BIT(13)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1		BIT(14)
-#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_ENLIGHTENMENTSCONTROL	BIT(15)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_IO_BITMAP		BIT(0, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_MSR_BITMAP		BIT(1, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2		BIT(2, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1		BIT(3, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_PROC		BIT(4, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EVENT		BIT(5, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_ENTRY		BIT(6, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EXCPN		BIT(7, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CRDR			BIT(8, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_XLAT		BIT(9, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_BASIC		BIT(10, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP1		BIT(11, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2		BIT(12, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER		BIT(13, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1		BIT(14, UL)
+#define HV_VMX_ENLIGHTENED_CLEAN_FIELD_ENLIGHTENMENTSCONTROL	BIT(15, UL)
 
 #define HV_VMX_ENLIGHTENED_CLEAN_FIELD_ALL			0xFFFF
 
