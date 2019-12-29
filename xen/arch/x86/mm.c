@@ -375,9 +375,11 @@ void __init arch_init_memory(void)
     }
 #endif
 
-    /* Generate a symbol to be used in linker script */
+    /* Generate symbols to be used in linker script */
     asm ( ".equ FIXADDR_X_SIZE, %P0; .global FIXADDR_X_SIZE"
           :: "i" (FIXADDR_X_SIZE) );
+    asm ( ".equ HV_HCALL_PAGE, %P0; .global HV_HCALL_PAGE"
+          :: "i" (__fix_x_to_virt(FIX_X_HYPERV_HCALL)) );
 }
 
 int page_is_ram_type(unsigned long mfn, unsigned long mem_type)
