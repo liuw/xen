@@ -113,15 +113,15 @@ static int map_vcpuinfo(void)
     info.mfn = virt_to_mfn(&vcpu_info[vcpu]);
     info.offset = (unsigned long)&vcpu_info[vcpu] & ~PAGE_MASK;
     rc = xen_hypercall_vcpu_op(VCPUOP_register_vcpu_info, vcpu, &info);
-    if ( rc )
-    {
-        BUG_ON(vcpu >= XEN_LEGACY_MAX_VCPUS);
-        this_cpu(vcpu_info) = &XEN_shared_info->vcpu_info[vcpu];
-    }
-    else
+    if ( !rc )
     {
         this_cpu(vcpu_info) = &vcpu_info[vcpu];
         set_bit(vcpu, vcpu_info_mapped);
+    }
+    else if ( vcpu < XEN_LEGACY_MAX_VCPUS )
+    {
+        rc = 0;
+        this_cpu(vcpu_info) = &XEN_shared_info->vcpu_info[vcpu];
     }
 
     return rc;
@@ -257,11 +257,17 @@ static void __init setup(void)
     init_evtchn();
 }
 
-static void ap_setup(void)
+static int ap_setup(void)
 {
+    int rc;
+
     set_vcpu_id();
-    map_vcpuinfo();
-    init_evtchn();
+    rc = map_vcpuinfo();
+
+    if ( !rc )
+        init_evtchn();
+
+    return rc;
 }
 
 int xg_alloc_unused_page(mfn_t *mfn)
